@@ -68,7 +68,9 @@ SUITE(Network)
         spdr::Network client;
         spdr::NodePtr node = client.connect(spdr::Address(127,0,0,1, 1341));
         
-        spdr::MessagePtr msg(new spdr::GenericMessage(node, 1300, "Test"));
+        std::string value = "Test";
+        std::vector<char> data(value.begin(), value.end());
+        spdr::MessagePtr msg(new spdr::GenericMessage(node, 1300, data));
         client.send(msg);
         
         // We need to sleep a little, since send returns instantanious, 
@@ -77,6 +79,6 @@ SUITE(Network)
         
         CHECK(last_message);
         CHECK_EQUAL(1300, last_message->get_type());
-        CHECK_EQUAL("Test", last_message->get_payload());
+        CHECK(data == last_message->get_payload());
     }
 }

@@ -61,8 +61,10 @@ namespace spdr
         
         MessagePtr get_next_message();
         void send_message(MessagePtr msg);
-        MessagePtr recive_message();      
+        
+        MessagePtr recive_message();              
         NodePtr get_node_from_address(const Address& address);
+        MessagePtr create_message(NodePtr to, NodePtr from, unsigned int type, const std::vector<char>& payload);
         void handle_internal_message(MessagePtr msg);
         
         void handle_connect(MessagePtr msg);

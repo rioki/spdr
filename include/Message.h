@@ -5,7 +5,7 @@
 #define _SPDR_MESSAGE_H_
 
 #include <tr1/memory>
-#include <string>
+#include <vector>
 
 #include "Node.h"
 
@@ -30,9 +30,7 @@ namespace spdr
         
         virtual unsigned int get_type() const = 0;
         
-        virtual unsigned int get_payload_size() const = 0;
-        
-        virtual std::string get_payload() const = 0;        
+        virtual std::vector<char> get_payload() const = 0;        
     
     private:
         NodePtr from;

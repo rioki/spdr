@@ -16,6 +16,9 @@
     <File Name="src/Node.cpp"/>
     <File Name="src/Message.cpp"/>
     <File Name="src/GenericMessage.cpp"/>
+    <File Name="src/ConnectMessage.h"/>
+    <File Name="src/ConnectMessage.cpp"/>
+    <File Name="src/InternalMessageType.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
     <File Name="include/UdpSocket.h"/>

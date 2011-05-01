@@ -15,19 +15,17 @@ namespace spdr
     {
     public:
     
-        GenericMessage(NodePtr to, unsigned int type, const std::string& payload);
+        GenericMessage(NodePtr to, unsigned int type, const std::vector<char>& payload);
         
-        GenericMessage(NodePtr to, NodePtr from, unsigned int type, const std::string& payload);
+        GenericMessage(NodePtr to, NodePtr from, unsigned int type, const std::vector<char>& payload);
         
         virtual unsigned int get_type() const;
         
-        virtual unsigned int get_payload_size() const;
-        
-        virtual std::string get_payload() const;        
+        virtual std::vector<char> get_payload() const;        
     
     private:
         unsigned int type;
-        std::string payload;
+        std::vector<char> payload;
     };    
 }
 

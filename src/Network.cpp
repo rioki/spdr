@@ -12,17 +12,12 @@
 #include <musli/MemoryPacker.h>
 #include <musli/MemoryUnpacker.h>
 
+#include "InternalMessageType.h"
 #include "GenericMessage.h"
+#include "ConnectMessage.h"
 
 namespace spdr
-{
-    enum MessageType
-    {
-        CONNECT = 1,
-        ACK_CONNECT = 2,
-        
-    };
-    
+{    
 //------------------------------------------------------------------------------
     Network::Network()
     : worker_thread(sigc::mem_fun(this, &Network::main))
@@ -65,7 +60,8 @@ namespace spdr
         
         connect_condition.clear();
         
-        MessagePtr con_msg(new GenericMessage(node, CONNECT, "Hullo"));
+        // TODO: make protocoll version a define
+        MessagePtr con_msg(new ConnectMessage(node, 1));
         send(con_msg);
                 
         connect_condition.wait(); // TODO timeout
@@ -183,12 +179,12 @@ namespace spdr
             NodePtr to = get_this_node();
             NodePtr from = get_node_from_address(address);
             unsigned int type;
-            std::string payload;
+            std::vector<char> payload;
             
             musli::MemoryUnpacker unpacker(buff);
             unpacker >> type >> payload;
             
-            return MessagePtr(new GenericMessage(to, from, type, payload));
+            return create_message(to, from, type, payload);
         }
         else
         {
@@ -224,6 +220,18 @@ namespace spdr
             return NodePtr(new Node(address));
         }
     }
+
+//------------------------------------------------------------------------------    
+    MessagePtr Network::create_message(NodePtr to, NodePtr from, unsigned int type, const std::vector<char>& payload)
+    {
+        switch (type)
+        {
+            case CONNECT:
+                return MessagePtr(new ConnectMessage(to, from, payload)); 
+            default:
+                return MessagePtr(new GenericMessage(to, from, type, payload)); 
+        }
+    }
     
 //------------------------------------------------------------------------------    
     void Network::handle_internal_message(MessagePtr msg)
@@ -249,15 +257,16 @@ namespace spdr
     }
     
 //------------------------------------------------------------------------------    
-    void Network::handle_connect(MessagePtr msg)
+    void Network::handle_connect(MessagePtr m)
     {
-        assert(msg->get_type() == CONNECT);
+        std::tr1::shared_ptr<ConnectMessage> msg = std::tr1::dynamic_pointer_cast<ConnectMessage>(m);
+        assert(msg);
         
         NodePtr from = msg->get_from();
         node_connected(from);
         nodes.push_back(from);
         
-        MessagePtr ack_msg(new GenericMessage(from, ACK_CONNECT, "id"));
+        MessagePtr ack_msg(new GenericMessage(from, ACK_CONNECT, std::vector<char>()));
         send(ack_msg);
     }
 
