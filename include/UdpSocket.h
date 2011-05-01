@@ -6,7 +6,7 @@
 
 #include "Address.h"
 
-#include <string>
+#include <vector>
 #include <tr1/tuple>
 
 namespace spdr
@@ -40,12 +40,12 @@ namespace spdr
         /**
          * Send a packet.
          **/
-        void send(const Address& address, const std::string& data);
+        void send(const Address& address, const std::vector<char>& data);
         
         /**
          * Recive a packet.
          **/
-        std::tr1::tuple<Address, std::string> recive();
+        std::tr1::tuple<Address, std::vector<char> > recive();
         
     private:
         int handle;

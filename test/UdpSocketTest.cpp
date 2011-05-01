@@ -9,13 +9,6 @@
 #include <string>
 #include <tr1/tuple>
 
-#ifdef _WIN32
-void sleep(unsigned int seconds)
-{
-    ::Sleep(seconds * 1000);
-}
-#endif
-
 SUITE(UdpSocket)
 {
 //------------------------------------------------------------------------------
@@ -32,16 +25,17 @@ SUITE(UdpSocket)
         spdr::UdpSocket socket2(1337);
         
         spdr::Address adr1(127,0,0,1,1337);
-        std::string buff1 = "Hello Network.";
+        std::string value = "Hello Network.";
+        std::vector<char> buff1(value.begin(), value.end());
         socket1.send(adr1, buff1);
         
         spdr::Address adr2;
-        std::string buff2;    
+        std::vector<char> buff2;    
         while (buff2.empty())
         {
             std::tr1::tie(adr2, buff2) = socket2.recive();        
         }
         
-        CHECK_EQUAL(buff1, buff2);
+        CHECK(buff1 == buff2);
     }
 }

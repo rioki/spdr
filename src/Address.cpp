@@ -75,4 +75,17 @@ namespace spdr
     {
         c_obj = value;
     }
+
+//------------------------------------------------------------------------------    
+    bool operator == (const Address& a, const Address& b)
+    {
+        return a.get_ip() == b.get_ip() &&
+               a.get_port() == b.get_port();
+    }
+    
+//------------------------------------------------------------------------------    
+    bool operator != (const Address& a, const Address& b)
+    {
+        return !(a == b);
+    }
 }

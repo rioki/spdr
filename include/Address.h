@@ -79,6 +79,9 @@ namespace spdr
     private:
         sockaddr_in c_obj;    
     };
+    
+    bool operator == (const Address& a, const Address& b);
+    bool operator != (const Address& a, const Address& b);
 }
 
 #endif

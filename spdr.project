@@ -12,10 +12,18 @@
     <File Name="src/WsaSentry.h"/>
     <File Name="src/WsaSentry.cpp"/>
     <File Name="src/Address.cpp"/>
+    <File Name="src/Network.cpp"/>
+    <File Name="src/Node.cpp"/>
+    <File Name="src/Message.cpp"/>
+    <File Name="src/GenericMessage.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
     <File Name="include/UdpSocket.h"/>
     <File Name="include/Address.h"/>
+    <File Name="include/Network.h"/>
+    <File Name="include/Node.h"/>
+    <File Name="include/Message.h"/>
+    <File Name="include/GenericMessage.h"/>
   </VirtualDirectory>
   <Dependencies Name="Release"/>
   <Dependencies Name="Debug"/>
@@ -32,9 +40,18 @@
     <Configuration Name="Debug" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Dynamic Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-g" C_Options="-g" Required="yes" PreCompiledHeader="">
         <IncludePath Value="include"/>
+        <IncludePath Value="$(SIGC_DIR)/include"/>
+        <IncludePath Value="$(C9Y_DIR)/include"/>
+        <IncludePath Value="$(MUSLI_DIR)/include"/>
       </Compiler>
       <Linker Options="" Required="yes">
+        <LibraryPath Value="$(SIGC_DIR)/lib"/>
+        <LibraryPath Value="$(C9Y_DIR)/lib"/>
+        <LibraryPath Value="$(MUSLI_DIR)/lib"/>
         <Library Value="wsock32"/>
+        <Library Value="sigc++"/>
+        <Library Value="c9y"/>
+        <Library Value="musli"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName).dll" IntermediateDirectory="./Debug" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes"/>
@@ -62,10 +79,19 @@
     </Configuration>
     <Configuration Name="Release" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Dynamic Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="" C_Options="" Required="yes" PreCompiledHeader="">
-        <IncludePath Value="."/>
+        <IncludePath Value="include"/>
+        <IncludePath Value="$(SIGC_DIR)/include"/>
+        <IncludePath Value="$(C9Y_DIR)/include"/>
+        <IncludePath Value="$(MUSLI_DIR)/include"/>
       </Compiler>
       <Linker Options="-O2" Required="yes">
+        <LibraryPath Value="$(SIGC_DIR)/lib"/>
+        <LibraryPath Value="$(C9Y_DIR)/lib"/>
+        <LibraryPath Value="$(MUSLI_DIR)/lib"/>
         <Library Value="wsock32"/>
+        <Library Value="sigc++"/>
+        <Library Value="c9y"/>
+        <Library Value="musli"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName).dll" IntermediateDirectory="./Release" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes"/>
