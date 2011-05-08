@@ -12,7 +12,8 @@ namespace spdr
     enum InternalMessageType
     {
         CONNECT = 1,
-        ACK_CONNECT = 2,        
+        CONNECTION_ACCEPTED = 2,        
+        CONNECTION_REJECTED = 3,
     };
 }
 

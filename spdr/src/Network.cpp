@@ -6,6 +6,7 @@
 #include <cassert>
 #include <stdexcept>
 #include <algorithm>
+#include <iostream>
 
 #include <c9y/Lock.h>
 #include <c9y/utility.h>
@@ -16,7 +17,7 @@
 #include "GenericMessage.h"
 #include "ConnectMessage.h"
 
-#include "Conector.h"
+#include "Connector.h"
 
 namespace spdr
 {    
@@ -57,19 +58,8 @@ namespace spdr
 //------------------------------------------------------------------------------    
     NodePtr Network::connect(const Address& address)
     {
-        NodePtr node(new Node(address));
-        nodes.add(node);
-        
-        connect_condition.clear();
-        
-        // TODO: make protocoll version a define
-        MessagePtr con_msg(new ConnectMessage(node, 1));
-        send(con_msg);
-                
-        connect_condition.wait(); // TODO timeout
-        //connect_condition.wait(500);
-        
-        return node;
+       Connector connector(*this);
+       return connector.connect(address);
     }
 
 //------------------------------------------------------------------------------    
@@ -114,6 +104,7 @@ namespace spdr
     {
         NodePtr node(new Node(address));
         nodes.add(node);
+        return node;
     }
 
 //------------------------------------------------------------------------------    
@@ -141,27 +132,34 @@ namespace spdr
     {
         while (running)
         {
-             // send 
-            MessagePtr msg = send_queue.pop();
-            if (msg)
+            try
             {
-                send_message(msg);
-            }
-            
-            // recive
-            msg = recive_message();
-            if (msg)
-            {
-                if (msg->get_type() < 128)
+                // send 
+                MessagePtr msg = send_queue.pop();
+                if (msg)
                 {
-                    handle_internal_message(msg);
+                    send_message(msg);
                 }
-                else
+                
+                // recive
+                msg = recive_message();
+                if (msg)
                 {
-                    message_recived(msg);
-                } 
+                    if (msg->get_type() < 128)
+                    {
+                        handle_internal_message(msg);
+                    }
+                    else
+                    {
+                        message_recived(msg);
+                    } 
+                }
             }
-        }        
+            catch (const std::exception& ex)
+            {
+                std::cerr << ex.what() << std::endl;
+            }
+        }                
     }
 
 //------------------------------------------------------------------------------    
@@ -226,15 +224,10 @@ namespace spdr
             {
                 handle_connect(msg);
                 break;
-            }
-            case ACK_CONNECT:
-            {
-                handle_ack_connect(msg);
-                break;
             }            
             default:
             {
-                assert(false && "Unknown internal message.");
+                internal_message_recived(msg);
                 break;
             }
         }
@@ -250,14 +243,8 @@ namespace spdr
         node_connected(from);
         nodes.add(from);
         
-        MessagePtr ack_msg(new GenericMessage(from, ACK_CONNECT, std::vector<char>()));
+        MessagePtr ack_msg(new GenericMessage(from, CONNECTION_ACCEPTED, std::vector<char>()));
         send(ack_msg);
-    }
-
-//------------------------------------------------------------------------------    
-    void Network::handle_ack_connect(MessagePtr msg)
-    {
-        connect_condition.signal();
     }
 }
     

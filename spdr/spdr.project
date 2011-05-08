@@ -18,6 +18,7 @@
     <File Name="src/ConnectMessage.cpp"/>
     <File Name="src/MessageQueue.cpp"/>
     <File Name="src/NodeList.cpp"/>
+    <File Name="src/Connector.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
     <File Name="include/UdpSocket.h"/>
@@ -31,6 +32,7 @@
     <File Name="include/WsaSentry.h"/>
     <File Name="include/MessageQueue.h"/>
     <File Name="include/NodeList.h"/>
+    <File Name="include/Connector.h"/>
   </VirtualDirectory>
   <Dependencies Name="Release"/>
   <Dependencies Name="Debug"/>

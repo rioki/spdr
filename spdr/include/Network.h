@@ -57,7 +57,7 @@ namespace spdr
         
         MessageQueue send_queue;
         
-        c9y::Condition connect_condition;
+        sigc::signal<void, MessagePtr> internal_message_recived;
         
         void init(unsigned short connect_port);
         
@@ -75,12 +75,11 @@ namespace spdr
         void handle_internal_message(MessagePtr msg);
         
         void handle_connect(MessagePtr msg);
-        void handle_ack_connect(MessagePtr msg);
     
         Network(const Network&);
         const Network& operator = (const Network&);
     
-    friend class Conector;
+    friend class Connector;
     };
 }
 
