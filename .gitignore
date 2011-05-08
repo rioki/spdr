@@ -1,5 +1,7 @@
 *.mk
 *.session
 *.tags
-/Debug
-/Release
+/spdr/Debug
+/spdr/Release
+/spdr_test/Debug
+/spdr_test/Release

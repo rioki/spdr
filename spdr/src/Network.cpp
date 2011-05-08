@@ -88,11 +88,7 @@ namespace spdr
         {
             message->from = get_this_node();
         }
-        // limit scope for lock
-        {
-            c9y::Lock<c9y::Mutex> lock(send_queue_mutex);
-            send_queue.push(message);
-        }
+        send_queue.push(message);        
     }
 
 //------------------------------------------------------------------------------
@@ -118,7 +114,7 @@ namespace spdr
         while (running)
         {
              // send 
-            MessagePtr msg = get_next_message();
+            MessagePtr msg = send_queue.pop();
             if (msg)
             {
                 send_message(msg);
@@ -138,19 +134,6 @@ namespace spdr
                 } 
             }
         }        
-    }
-
-//------------------------------------------------------------------------------
-    MessagePtr Network::get_next_message()
-    {
-        c9y::Lock<c9y::Mutex> lock(send_queue_mutex);
-        if (! send_queue.empty())
-        {
-            MessagePtr msg = send_queue.front();
-            send_queue.pop();
-            return msg;
-        }
-        return MessagePtr();
     }
 
 //------------------------------------------------------------------------------    

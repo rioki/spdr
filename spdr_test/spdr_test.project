@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<CodeLite_Project Name="spdr" InternalType="Library">
+<CodeLite_Project Name="spdr_test" InternalType="Console">
   <Plugins>
     <Plugin Name="qmake">
       <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
@@ -8,29 +8,18 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
-    <File Name="src/UdpSocket.cpp"/>
-    <File Name="src/WsaSentry.h"/>
-    <File Name="src/WsaSentry.cpp"/>
-    <File Name="src/Address.cpp"/>
-    <File Name="src/Network.cpp"/>
-    <File Name="src/Node.cpp"/>
-    <File Name="src/Message.cpp"/>
-    <File Name="src/GenericMessage.cpp"/>
-    <File Name="src/ConnectMessage.h"/>
-    <File Name="src/ConnectMessage.cpp"/>
-    <File Name="src/InternalMessageType.h"/>
+    <File Name="src/main.cpp"/>
+    <File Name="src/UdpSocketTest.cpp"/>
+    <File Name="src/AddressTest.cpp"/>
+    <File Name="src/NetworkTest.cpp"/>
   </VirtualDirectory>
-  <VirtualDirectory Name="include">
-    <File Name="include/UdpSocket.h"/>
-    <File Name="include/Address.h"/>
-    <File Name="include/Network.h"/>
-    <File Name="include/Node.h"/>
-    <File Name="include/Message.h"/>
-    <File Name="include/GenericMessage.h"/>
-  </VirtualDirectory>
-  <Dependencies Name="Release"/>
-  <Dependencies Name="Debug"/>
-  <Settings Type="Dynamic Library">
+  <Dependencies Name="Release">
+    <Project Name="spdr"/>
+  </Dependencies>
+  <Dependencies Name="Debug">
+    <Project Name="spdr"/>
+  </Dependencies>
+  <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="">
         <IncludePath Value="."/>
@@ -40,31 +29,34 @@
       </Linker>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
-    <Configuration Name="Debug" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Dynamic Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+    <Configuration Name="Debug" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-g" C_Options="-g" Required="yes" PreCompiledHeader="">
-        <IncludePath Value="include"/>
+        <IncludePath Value="../spdr/include"/>
         <IncludePath Value="$(SIGC_DIR)/include"/>
         <IncludePath Value="$(C9Y_DIR)/include"/>
-        <IncludePath Value="$(MUSLI_DIR)/include"/>
+        <IncludePath Value="$(UNIT_TEST_DIR)/include"/>
       </Compiler>
       <Linker Options="" Required="yes">
+        <LibraryPath Value="../spdr/$(ConfigurationName)"/>
         <LibraryPath Value="$(SIGC_DIR)/lib"/>
         <LibraryPath Value="$(C9Y_DIR)/lib"/>
-        <LibraryPath Value="$(MUSLI_DIR)/lib"/>
-        <Library Value="wsock32"/>
+        <LibraryPath Value="$(UNIT_TEST_DIR)/lib"/>
+        <Library Value="spdr"/>
         <Library Value="sigc++"/>
         <Library Value="c9y"/>
-        <Library Value="musli"/>
+        <Library Value="UnitTest++"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="$(IntermediateDirectory)/$(ProjectName).dll" IntermediateDirectory="./Debug" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes"/>
+      <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;"/>
       <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="">
         <PostConnectCommands/>
         <StartupCommands/>
       </Debugger>
       <PreBuild/>
-      <PostBuild/>
+      <PostBuild>
+        <Command Enabled="yes">run_test $(ConfigurationName)</Command>
+      </PostBuild>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
         <CleanCommand/>
@@ -72,7 +64,7 @@
         <PreprocessFileCommand/>
         <SingleFileCommand/>
         <MakefileGenerationCommand/>
-        <ThirdPartyToolName/>
+        <ThirdPartyToolName>None</ThirdPartyToolName>
         <WorkingDirectory/>
       </CustomBuild>
       <AdditionalRules>
@@ -80,31 +72,34 @@
         <CustomPreBuild/>
       </AdditionalRules>
     </Configuration>
-    <Configuration Name="Release" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Dynamic Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+    <Configuration Name="Release" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="" C_Options="" Required="yes" PreCompiledHeader="">
         <IncludePath Value="include"/>
         <IncludePath Value="$(SIGC_DIR)/include"/>
         <IncludePath Value="$(C9Y_DIR)/include"/>
-        <IncludePath Value="$(MUSLI_DIR)/include"/>
+        <IncludePath Value="$(UNIT_TEST_DIR)/include"/>
       </Compiler>
       <Linker Options="-O2" Required="yes">
+        <LibraryPath Value="../spdr/$(ConfigurationName"/>
         <LibraryPath Value="$(SIGC_DIR)/lib"/>
         <LibraryPath Value="$(C9Y_DIR)/lib"/>
-        <LibraryPath Value="$(MUSLI_DIR)/lib"/>
-        <Library Value="wsock32"/>
+        <LibraryPath Value="$(UNIT_TEST_DIR)/lib"/>
+        <Library Value="spdr"/>
         <Library Value="sigc++"/>
         <Library Value="c9y"/>
-        <Library Value="musli"/>
+        <Library Value="UnitTest++"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="$(IntermediateDirectory)/$(ProjectName).dll" IntermediateDirectory="./Release" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes"/>
+      <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Release" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;"/>
       <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="">
         <PostConnectCommands/>
         <StartupCommands/>
       </Debugger>
       <PreBuild/>
-      <PostBuild/>
+      <PostBuild>
+        <Command Enabled="yes">run_test $(ConfigurationName)</Command>
+      </PostBuild>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
         <CleanCommand/>
@@ -112,7 +107,7 @@
         <PreprocessFileCommand/>
         <SingleFileCommand/>
         <MakefileGenerationCommand/>
-        <ThirdPartyToolName/>
+        <ThirdPartyToolName>None</ThirdPartyToolName>
         <WorkingDirectory/>
       </CustomBuild>
       <AdditionalRules>

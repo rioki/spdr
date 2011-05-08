@@ -14,6 +14,7 @@
 #include "Address.h"
 #include "UdpSocket.h"
 #include "Message.h"
+#include "MessageQueue.h"
 
 namespace spdr
 {
@@ -51,15 +52,13 @@ namespace spdr
         bool running;
         c9y::Thread worker_thread; 
         
-        c9y::Mutex send_queue_mutex;
-        std::queue<MessagePtr> send_queue;
+        MessageQueue send_queue;
         
         c9y::Condition connect_condition;
         
         void init(unsigned short connect_port);
         void main();
         
-        MessagePtr get_next_message();
         void send_message(MessagePtr msg);
         
         MessagePtr recive_message();              
