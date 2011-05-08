@@ -14,7 +14,9 @@
 #include "Address.h"
 #include "UdpSocket.h"
 #include "Message.h"
+
 #include "MessageQueue.h"
+#include "NodeList.h"
 
 namespace spdr
 {
@@ -45,7 +47,8 @@ namespace spdr
     private:
         unsigned short connect_port;
         NodePtr this_node;
-        std::vector<NodePtr> nodes;
+        
+        NodeList nodes;
                 
         UdpSocket socket;
         
@@ -57,12 +60,17 @@ namespace spdr
         c9y::Condition connect_condition;
         
         void init(unsigned short connect_port);
+        
+        NodePtr create_node(const Address& address);
+        void remove_node(NodePtr node);
+        NodePtr get_node_from_address(const Address& address);
+                
         void main();
         
         void send_message(MessagePtr msg);
         
         MessagePtr recive_message();              
-        NodePtr get_node_from_address(const Address& address);
+        
         MessagePtr create_message(NodePtr to, NodePtr from, unsigned int type, const std::vector<char>& payload);
         void handle_internal_message(MessagePtr msg);
         
@@ -71,6 +79,8 @@ namespace spdr
     
         Network(const Network&);
         const Network& operator = (const Network&);
+    
+    friend class Conector;
     };
 }
 

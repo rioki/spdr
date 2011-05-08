@@ -16,6 +16,8 @@
 #include "GenericMessage.h"
 #include "ConnectMessage.h"
 
+#include "Conector.h"
+
 namespace spdr
 {    
 //------------------------------------------------------------------------------
@@ -56,7 +58,7 @@ namespace spdr
     NodePtr Network::connect(const Address& address)
     {
         NodePtr node(new Node(address));
-        nodes.push_back(node);
+        nodes.add(node);
         
         connect_condition.clear();
         
@@ -106,11 +108,37 @@ namespace spdr
         running = true;
         worker_thread.start();
     }
-    
+
 //------------------------------------------------------------------------------    
+    NodePtr Network::create_node(const Address& address)
+    {
+        NodePtr node(new Node(address));
+        nodes.add(node);
+    }
+
+//------------------------------------------------------------------------------    
+    void Network::remove_node(NodePtr node)
+    {
+        nodes.remove(node);
+    }
+
+//------------------------------------------------------------------------------    
+    NodePtr Network::get_node_from_address(const Address& address)
+    {
+        NodePtr node = nodes.get_node_by_address(address);
+        if (node)
+        {
+            return node;
+        }
+        else
+        {
+            return NodePtr(new Node(address));
+        }
+    }
+    
+//------------------------------------------------------------------------------
     void Network::main()
     {
-        // locking 
         while (running)
         {
              // send 
@@ -175,34 +203,7 @@ namespace spdr
         }
     }
 
-//------------------------------------------------------------------------------    
-    struct address_equals
-    {
-        const Address& address;
-        
-        address_equals(const Address& a)
-        : address(a) {}
-        
-        bool operator () (NodePtr node)
-        {
-            return address == node->get_address();
-        }
-    };
 
-//------------------------------------------------------------------------------
-    NodePtr Network::get_node_from_address(const Address& address)
-    {
-        std::vector<NodePtr>::iterator iter;
-        iter = std::find_if(nodes.begin(), nodes.end(), address_equals(address));
-        if (iter != nodes.end())
-        {
-            return *iter;
-        }
-        else
-        {
-            return NodePtr(new Node(address));
-        }
-    }
 
 //------------------------------------------------------------------------------    
     MessagePtr Network::create_message(NodePtr to, NodePtr from, unsigned int type, const std::vector<char>& payload)
@@ -247,7 +248,7 @@ namespace spdr
         
         NodePtr from = msg->get_from();
         node_connected(from);
-        nodes.push_back(from);
+        nodes.add(from);
         
         MessagePtr ack_msg(new GenericMessage(from, ACK_CONNECT, std::vector<char>()));
         send(ack_msg);
