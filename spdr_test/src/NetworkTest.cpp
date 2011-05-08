@@ -1,6 +1,7 @@
 // spdr - easy networking
 // Copyright 2011 Sean Farrell
 
+#include <stdexcept>
 #include <UnitTest++/UnitTest++.h>
 #include <c9y/utility.h>
 
@@ -48,7 +49,7 @@ SUITE(Network)
         CHECK(connect_node);
     }
     
-//------------------------------------------------------------------------------  
+//------------------------------------------------------------------------------
     struct SendFixture
     {
         spdr::MessagePtr last_message;
@@ -80,5 +81,16 @@ SUITE(Network)
         CHECK(last_message);
         CHECK_EQUAL(1300, last_message->get_type());
         CHECK(data == last_message->get_payload());
+    }
+    
+//------------------------------------------------------------------------------    
+    TEST(connect_failed)
+    {
+        spdr::Network client;
+        {
+            // FIXME: The timer does not catch up...
+            UNITTEST_TIME_CONSTRAINT(750); // timeout is 500ms
+            CHECK_THROW(client.connect(spdr::Address(127,0,0,1, 1342)), std::runtime_error);
+        }
     }
 }

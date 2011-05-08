@@ -201,8 +201,6 @@ namespace spdr
         }
     }
 
-
-
 //------------------------------------------------------------------------------    
     MessagePtr Network::create_message(NodePtr to, NodePtr from, unsigned int type, const std::vector<char>& payload)
     {

@@ -49,7 +49,7 @@ namespace spdr
         NodePtr this_node;
         
         NodeList nodes;
-                
+        
         UdpSocket socket;
         
         bool running;
@@ -61,19 +61,17 @@ namespace spdr
         
         void init(unsigned short connect_port);
         
+        // node handling
         NodePtr create_node(const Address& address);
         void remove_node(NodePtr node);
         NodePtr get_node_from_address(const Address& address);
-                
-        void main();
         
-        void send_message(MessagePtr msg);
-        
-        MessagePtr recive_message();              
-        
+        // worker thread
+        void main();        
+        void send_message(MessagePtr msg);        
+        MessagePtr recive_message();
         MessagePtr create_message(NodePtr to, NodePtr from, unsigned int type, const std::vector<char>& payload);
-        void handle_internal_message(MessagePtr msg);
-        
+        void handle_internal_message(MessagePtr msg);        
         void handle_connect(MessagePtr msg);
     
         Network(const Network&);

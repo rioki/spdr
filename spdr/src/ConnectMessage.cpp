@@ -29,7 +29,7 @@ namespace spdr
     {
         return CONNECT;
     }
-    
+
 //------------------------------------------------------------------------------
     std::vector<char> ConnectMessage::get_payload() const
     {
