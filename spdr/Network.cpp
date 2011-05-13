@@ -4,6 +4,7 @@
 #include "Network.h"
 
 #include <cassert>
+#include <ctime>
 #include <stdexcept>
 #include <algorithm>
 #include <iostream>
@@ -15,22 +16,27 @@
 
 #include "InternalMessageType.h"
 #include "GenericMessage.h"
-#include "ConnectMessage.h"
-
-#include "Connector.h"
+#include "Connect.h"
+#include "ConnectionAccepted.h"
 
 namespace spdr
 {    
 //------------------------------------------------------------------------------
-    Network::Network()
-    : worker_thread(sigc::mem_fun(this, &Network::main))
+    unsigned int get_time()
+    {
+        return std::clock() / (CLOCKS_PER_SEC / 1000);
+    }    
+    
+//------------------------------------------------------------------------------
+    Network::Network(unsigned int pi)
+    : protocol_id(pi), worker_thread(sigc::mem_fun(this, &Network::main))
     {
         init(0);
     }
 
 //------------------------------------------------------------------------------    
-    Network::Network(unsigned short cp)
-    : worker_thread(sigc::mem_fun(this, &Network::main)),
+    Network::Network(unsigned int pi, unsigned short cp)
+    : protocol_id(pi), worker_thread(sigc::mem_fun(this, &Network::main)),
       socket(cp)
     {
         init(cp);
@@ -42,8 +48,14 @@ namespace spdr
         running = false;
         worker_thread.join();
     }
+    
+//------------------------------------------------------------------------------
+    unsigned int Network::get_protocol_id() const
+    {
+        return protocol_id;
+    }
 
-//------------------------------------------------------------------------------    
+//------------------------------------------------------------------------------
     unsigned short Network::get_connect_port() const
     {
         return connect_port;
@@ -58,8 +70,13 @@ namespace spdr
 //------------------------------------------------------------------------------    
     NodePtr Network::connect(const Address& address)
     {
-       Connector connector(*this);
-       return connector.connect(address);
+        NodePtr node = create_node(address);
+        node->last_message_recived = get_time();
+        
+        MessagePtr conect_message(new Connect(node, protocol_id));
+        send(conect_message);
+        
+        return node;
     }
 
 //------------------------------------------------------------------------------    
@@ -132,33 +149,28 @@ namespace spdr
     {
         while (running)
         {
-            try
+            // send 
+            MessagePtr msg = send_queue.pop();
+            if (msg)
             {
-                // send 
-                MessagePtr msg = send_queue.pop();
-                if (msg)
-                {
-                    send_message(msg);
-                }
-                
-                // recive
-                msg = recive_message();
-                if (msg)
-                {
-                    if (msg->get_type() < 128)
-                    {
-                        handle_internal_message(msg);
-                    }
-                    else
-                    {
-                        message_recived(msg);
-                    } 
-                }
+                send_message(msg);
             }
-            catch (const std::exception& ex)
+            
+            // recive
+            msg = recive_message();
+            if (msg)
             {
-                std::cerr << ex.what() << std::endl;
-            }
+                if (msg->get_type() < 128)
+                {
+                    handle_internal_message(msg);
+                }
+                else
+                {
+                    message_recived(msg);
+                } 
+            }            
+            
+            check_node_timeout();
         }                
     }
 
@@ -207,9 +219,11 @@ namespace spdr
         switch (type)
         {
             case CONNECT:
-                return MessagePtr(new ConnectMessage(to, from, payload)); 
+                return MessagePtr(new Connect(to, from, payload)); 
+            case CONNECTION_ACCEPTED:
+                return MessagePtr(new ConnectionAccepted(to, from, payload)); 
             default:
-                return MessagePtr(new GenericMessage(to, from, type, payload)); 
+                return MessagePtr(new GenericMessage(to, from, type, payload));
         }
     }
     
@@ -222,10 +236,20 @@ namespace spdr
             {
                 handle_connect(msg);
                 break;
-            }            
+            }
+            case CONNECTION_ACCEPTED:
+            {
+                handle_connection_accepted(msg);
+                break;
+            }                
+            case CONNECTION_REJECTED:
+            {
+                handle_connection_rejected(msg);
+                break;
+            }
             default:
             {
-                internal_message_recived(msg);
+                assert(false && "Unknown internal message.");
                 break;
             }
         }
@@ -234,15 +258,45 @@ namespace spdr
 //------------------------------------------------------------------------------    
     void Network::handle_connect(MessagePtr m)
     {
-        std::tr1::shared_ptr<ConnectMessage> msg = std::tr1::dynamic_pointer_cast<ConnectMessage>(m);
+        std::tr1::shared_ptr<Connect> msg = std::tr1::dynamic_pointer_cast<Connect>(m);
         assert(msg);
         
         NodePtr from = msg->get_from();
+        from->set_state(Node::CONNECTED);
         node_connected(from);
         nodes.add(from);
         
-        MessagePtr ack_msg(new GenericMessage(from, CONNECTION_ACCEPTED, std::vector<char>()));
+        MessagePtr ack_msg(new ConnectionAccepted(from));
         send(ack_msg);
+    }
+    
+//------------------------------------------------------------------------------    
+    void Network::handle_connection_accepted(MessagePtr m)
+    {
+        std::tr1::shared_ptr<ConnectionAccepted> msg = std::tr1::dynamic_pointer_cast<ConnectionAccepted>(m);
+        assert(msg);
+        
+        NodePtr from = msg->get_from();
+        from->set_state(Node::CONNECTED);
+        node_connected(from);
+    }
+    
+//------------------------------------------------------------------------------    
+    void Network::handle_connection_rejected(MessagePtr m)
+    {
+        
+    }
+
+//------------------------------------------------------------------------------    
+    void Network::check_node_timeout()
+    {
+        std::vector<NodePtr> t_nodes = nodes.get_timout_nodes();
+        for (unsigned int i = 0; i < t_nodes.size(); i++)
+        {
+            t_nodes[i]->set_state(Node::TIMEOUT);
+            node_timeout(t_nodes[i]);
+            remove_node(t_nodes[i]);
+        }
     }
 }
     

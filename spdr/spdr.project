@@ -8,31 +8,31 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
-    <File Name="src/UdpSocket.cpp"/>
-    <File Name="src/WsaSentry.cpp"/>
-    <File Name="src/Address.cpp"/>
-    <File Name="src/Network.cpp"/>
-    <File Name="src/Node.cpp"/>
-    <File Name="src/Message.cpp"/>
-    <File Name="src/GenericMessage.cpp"/>
-    <File Name="src/ConnectMessage.cpp"/>
-    <File Name="src/MessageQueue.cpp"/>
-    <File Name="src/NodeList.cpp"/>
-    <File Name="src/Connector.cpp"/>
+    <File Name="UdpSocket.cpp"/>
+    <File Name="WsaSentry.cpp"/>
+    <File Name="Address.cpp"/>
+    <File Name="Network.cpp"/>
+    <File Name="Node.cpp"/>
+    <File Name="Message.cpp"/>
+    <File Name="GenericMessage.cpp"/>
+    <File Name="MessageQueue.cpp"/>
+    <File Name="NodeList.cpp"/>
+    <File Name="ConnectedAccepted.cpp"/>
+    <File Name="Connect.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
-    <File Name="include/UdpSocket.h"/>
-    <File Name="include/Address.h"/>
-    <File Name="include/Network.h"/>
-    <File Name="include/Node.h"/>
-    <File Name="include/Message.h"/>
-    <File Name="include/GenericMessage.h"/>
-    <File Name="include/ConnectMessage.h"/>
-    <File Name="include/InternalMessageType.h"/>
-    <File Name="include/WsaSentry.h"/>
-    <File Name="include/MessageQueue.h"/>
-    <File Name="include/NodeList.h"/>
-    <File Name="include/Connector.h"/>
+    <File Name="UdpSocket.h"/>
+    <File Name="Address.h"/>
+    <File Name="Network.h"/>
+    <File Name="Node.h"/>
+    <File Name="Message.h"/>
+    <File Name="GenericMessage.h"/>
+    <File Name="InternalMessageType.h"/>
+    <File Name="WsaSentry.h"/>
+    <File Name="MessageQueue.h"/>
+    <File Name="NodeList.h"/>
+    <File Name="Connect.h"/>
+    <File Name="ConnectionAccepted.h"/>
   </VirtualDirectory>
   <Dependencies Name="Release"/>
   <Dependencies Name="Debug"/>
@@ -48,7 +48,6 @@
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Dynamic Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-g" C_Options="-g" Required="yes" PreCompiledHeader="">
-        <IncludePath Value="include"/>
         <IncludePath Value="$(SIGC_DIR)/include"/>
         <IncludePath Value="$(C9Y_DIR)/include"/>
         <IncludePath Value="$(MUSLI_DIR)/include"/>
@@ -88,7 +87,6 @@
     </Configuration>
     <Configuration Name="Release" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Dynamic Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="" C_Options="" Required="yes" PreCompiledHeader="">
-        <IncludePath Value="include"/>
         <IncludePath Value="$(SIGC_DIR)/include"/>
         <IncludePath Value="$(C9Y_DIR)/include"/>
         <IncludePath Value="$(MUSLI_DIR)/include"/>

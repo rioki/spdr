@@ -1,37 +1,35 @@
 // spdr - easy networking
 // Copyright 2011 Sean Farrell
 
-#ifndef _CONNECT_MESSAGE_H_
-#define _CONNECT_MESSAGE_H_
+#ifndef _CONNECTION_ACCEPTED_H_
+#define _CONNECTION_ACCEPTED_H_
 
 #include "Message.h"
 
 namespace spdr
 {
     /**
-     * Message used to establish connections.
+     * Message used when a connection is accepted.
      **/
-    class ConnectMessage : public Message
+    class ConnectionAccepted : public Message
     {
     public:
         /**
          * Send Constructor
          **/
-        ConnectMessage(NodePtr to, unsigned int version);
+        ConnectionAccepted(NodePtr to);
         
         /**
          * Recive Constructor
          **/
-        ConnectMessage(NodePtr to, NodePtr from, const std::vector<char>& payload);
+        ConnectionAccepted(NodePtr to, NodePtr from, const std::vector<char>& payload);
         
         virtual unsigned int get_type() const;
 
         virtual std::vector<char> get_payload() const; 
-
-        unsigned int get_version() const;
     
     private:
-        unsigned int version;
+        
     };    
 }
 

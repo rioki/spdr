@@ -24,11 +24,13 @@ namespace spdr
     {
     public:
     
-        Network();
+        Network(unsigned int protocol_id);
         
-        Network(unsigned short connect_port);
+        Network(unsigned int protocol_id, unsigned short connect_port);
         
         ~Network();
+        
+        unsigned int get_protocol_id() const;
         
         unsigned short get_connect_port() const;
         
@@ -36,15 +38,38 @@ namespace spdr
         
         NodePtr get_this_node() const;
         
+        /**
+         * Signal that is emitted when a node is connected.
+         **/
         sigc::signal<void, NodePtr> node_connected;
         
+        /**
+         * Signal that is emitted when a node timesout.
+         **/
+        sigc::signal<void, NodePtr> node_timeout;
+        
+        /**
+         * Signal that is emitted when a node was disconnected.
+         **/
+        sigc::signal<void, NodePtr> node_disconnected;
+        
+        /**
+         * Initiate connection to an other node. 
+         **/
         NodePtr connect(const Address& address);
         
+        /**
+         * Signal that is emitted when a message is recived. 
+         **/
         sigc::signal<void, MessagePtr> message_recived;
         
+        /**
+         * Send a message. 
+         **/
         void send(MessagePtr message);
     
     private:
+        unsigned int protocol_id;
         unsigned short connect_port;
         NodePtr this_node;
         
@@ -57,7 +82,7 @@ namespace spdr
         
         MessageQueue send_queue;
         
-        sigc::signal<void, MessagePtr> internal_message_recived;
+        sigc::signal<void, MessagePtr> internal_message_recived;        
         
         void init(unsigned short connect_port);
         
@@ -73,6 +98,10 @@ namespace spdr
         MessagePtr create_message(NodePtr to, NodePtr from, unsigned int type, const std::vector<char>& payload);
         void handle_internal_message(MessagePtr msg);        
         void handle_connect(MessagePtr msg);
+        void handle_connection_accepted(MessagePtr msg);
+        void handle_connection_rejected(MessagePtr msg);
+        
+        void check_node_timeout();
     
         Network(const Network&);
         const Network& operator = (const Network&);

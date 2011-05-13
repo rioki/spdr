@@ -44,6 +44,11 @@ namespace spdr
          * @return returns empy pointer if none was found
          **/
         NodePtr get_node_by_address(const Address& address);
+        
+        /**
+         * Get all nodes that are timedout. 
+         **/
+        std::vector<NodePtr> get_timout_nodes();
     
     private:
         c9y::Mutex mutex; // RW-Mutex?

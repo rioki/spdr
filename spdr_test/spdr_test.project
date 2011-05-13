@@ -8,10 +8,10 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
-    <File Name="src/main.cpp"/>
-    <File Name="src/UdpSocketTest.cpp"/>
-    <File Name="src/AddressTest.cpp"/>
-    <File Name="src/NetworkTest.cpp"/>
+    <File Name="main.cpp"/>
+    <File Name="UdpSocketTest.cpp"/>
+    <File Name="AddressTest.cpp"/>
+    <File Name="NetworkTest.cpp"/>
   </VirtualDirectory>
   <Dependencies Name="Release">
     <Project Name="spdr"/>
@@ -31,7 +31,7 @@
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-g" C_Options="-g" Required="yes" PreCompiledHeader="">
-        <IncludePath Value="../spdr/include"/>
+        <IncludePath Value="../spdr"/>
         <IncludePath Value="$(SIGC_DIR)/include"/>
         <IncludePath Value="$(C9Y_DIR)/include"/>
         <IncludePath Value="$(UNIT_TEST_DIR)/include"/>
@@ -74,7 +74,7 @@
     </Configuration>
     <Configuration Name="Release" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="" C_Options="" Required="yes" PreCompiledHeader="">
-        <IncludePath Value="include"/>
+        <IncludePath Value="../spdr"/>
         <IncludePath Value="$(SIGC_DIR)/include"/>
         <IncludePath Value="$(C9Y_DIR)/include"/>
         <IncludePath Value="$(UNIT_TEST_DIR)/include"/>

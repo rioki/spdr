@@ -9,6 +9,8 @@
 
 namespace spdr
 {
+    unsigned int get_time();
+    
 //------------------------------------------------------------------------------
     NodeList::NodeList() {}
 
@@ -64,5 +66,23 @@ namespace spdr
         {
             return NodePtr();
         }
+    }
+
+//------------------------------------------------------------------------------    
+    std::vector<NodePtr> NodeList::get_timout_nodes()
+    {
+        std::vector<NodePtr> result;
+        
+        unsigned int now = get_time();
+        
+        for (unsigned int i = 0; i < nodes.size(); i++)
+        {
+            if (now - nodes[i]->get_last_message_recived() > 500)
+            {
+                result.push_back(nodes[i]);
+            }
+        }
+        
+        return result;
     }
 }
