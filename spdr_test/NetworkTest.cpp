@@ -144,8 +144,11 @@ SUITE(Network)
         spdr::MessagePtr last_message = server_tracker.get_last_message();
         
         CHECK(last_message);
-        CHECK_EQUAL(1300, last_message->get_type());
-        CHECK(data == last_message->get_payload());
+        if (last_message)
+        {
+            CHECK_EQUAL(1300, last_message->get_type());
+            CHECK(data == last_message->get_payload());
+        }
     }
     
 //------------------------------------------------------------------------------    
@@ -160,12 +163,11 @@ SUITE(Network)
         client_tracker.wait_connection();
         
         std::string ref = "Node Timeout: TIMEOUT\n";
-        CHECK_EQUAL(ref, client_tracker.get_tanscript());
-        
+        CHECK_EQUAL(ref, client_tracker.get_tanscript());        
     }
 
 //------------------------------------------------------------------------------    
-    /*TEST(connection_rejected_on_different_protocoll_id)
+    TEST(connection_rejected_on_different_protocoll_id)
     {
         spdr::Network server(TEST_PROTOCOLL_ID, 1343);        
         spdr::Network client(TEST_PROTOCOLL_ID+1);
@@ -175,8 +177,7 @@ SUITE(Network)
         client_tracker.wait_connection();
         
         std::string ref = "Node Disconnect: DISCONNECTED\n";
-        CHECK_EQUAL(ref, client_tracker.get_tanscript());
-        
-    }*/
+        CHECK_EQUAL(ref, client_tracker.get_tanscript());        
+    }
 }
 

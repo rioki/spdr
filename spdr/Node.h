@@ -55,6 +55,9 @@ namespace spdr
     friend class Network;
     };
     
+    /**
+     * Stream operator for a Node's state. 
+     **/
     std::ostream& operator << (std::ostream& os, Node::State state);
     
     typedef std::tr1::shared_ptr<Node> NodePtr;

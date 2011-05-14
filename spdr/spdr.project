@@ -17,8 +17,9 @@
     <File Name="GenericMessage.cpp"/>
     <File Name="MessageQueue.cpp"/>
     <File Name="NodeList.cpp"/>
-    <File Name="ConnectedAccepted.cpp"/>
     <File Name="Connect.cpp"/>
+    <File Name="ConnectionRejected.cpp"/>
+    <File Name="ConnectionAccepted.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
     <File Name="UdpSocket.h"/>
@@ -33,6 +34,7 @@
     <File Name="NodeList.h"/>
     <File Name="Connect.h"/>
     <File Name="ConnectionAccepted.h"/>
+    <File Name="ConnectionRejected.h"/>
   </VirtualDirectory>
   <Dependencies Name="Release"/>
   <Dependencies Name="Debug"/>

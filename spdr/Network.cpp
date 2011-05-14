@@ -18,6 +18,7 @@
 #include "GenericMessage.h"
 #include "Connect.h"
 #include "ConnectionAccepted.h"
+#include "ConnectionRejected.h"
 
 namespace spdr
 {    
@@ -222,6 +223,8 @@ namespace spdr
                 return MessagePtr(new Connect(to, from, payload)); 
             case CONNECTION_ACCEPTED:
                 return MessagePtr(new ConnectionAccepted(to, from, payload)); 
+            case CONNECTION_REJECTED:
+                return MessagePtr(new ConnectionRejected(to, from, payload));             
             default:
                 return MessagePtr(new GenericMessage(to, from, type, payload));
         }
@@ -261,13 +264,23 @@ namespace spdr
         std::tr1::shared_ptr<Connect> msg = std::tr1::dynamic_pointer_cast<Connect>(m);
         assert(msg);
         
-        NodePtr from = msg->get_from();
-        from->set_state(Node::CONNECTED);
-        node_connected(from);
-        nodes.add(from);
-        
-        MessagePtr ack_msg(new ConnectionAccepted(from));
-        send(ack_msg);
+        if (protocol_id == msg->get_protocol_id())
+        {        
+            NodePtr from = msg->get_from();
+            from->set_state(Node::CONNECTED);
+            node_connected(from);
+            nodes.add(from);
+            
+            MessagePtr ack_msg(new ConnectionAccepted(from));
+            send(ack_msg);
+        }
+        else
+        {
+            NodePtr from = msg->get_from();            
+            
+            MessagePtr ack_msg(new ConnectionRejected(from));
+            send(ack_msg);
+        }
     }
     
 //------------------------------------------------------------------------------    
@@ -284,7 +297,15 @@ namespace spdr
 //------------------------------------------------------------------------------    
     void Network::handle_connection_rejected(MessagePtr m)
     {
+        // TODO: add reason to rejection
         
+        std::tr1::shared_ptr<ConnectionRejected> msg = std::tr1::dynamic_pointer_cast<ConnectionRejected>(m);
+        assert(msg);
+        
+        NodePtr from = msg->get_from();
+        from->set_state(Node::DISCONNECTED);
+        node_disconnected(from);
+        remove_node(from);
     }
 
 //------------------------------------------------------------------------------    
