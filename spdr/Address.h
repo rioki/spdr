@@ -12,6 +12,8 @@
 #include <fcntl.h>
 #endif
 
+#include <iosfwd>
+
 namespace spdr
 {
     /**
@@ -82,6 +84,8 @@ namespace spdr
     
     bool operator == (const Address& a, const Address& b);
     bool operator != (const Address& a, const Address& b);
+    
+    std::ostream& operator << (std::ostream& os, const Address& a);
 }
 
 #endif

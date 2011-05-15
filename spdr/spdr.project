@@ -35,6 +35,7 @@
     <File Name="Connect.h"/>
     <File Name="ConnectionAccepted.h"/>
     <File Name="ConnectionRejected.h"/>
+    <File Name="spdr.h"/>
   </VirtualDirectory>
   <Dependencies Name="Release"/>
   <Dependencies Name="Debug"/>

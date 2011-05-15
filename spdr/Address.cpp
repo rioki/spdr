@@ -3,6 +3,8 @@
 
 #include "Address.h"
 
+#include <iostream>
+
 namespace spdr
 {   
 //------------------------------------------------------------------------------    
@@ -87,5 +89,21 @@ namespace spdr
     bool operator != (const Address& a, const Address& b)
     {
         return !(a == b);
+    }
+
+//------------------------------------------------------------------------------    
+    std::ostream& operator << (std::ostream& os, const Address& a)
+    {
+        os << static_cast<unsigned int>(a.get_a()) << "."
+           << static_cast<unsigned int>(a.get_b()) << "."
+           << static_cast<unsigned int>(a.get_c()) << "."
+           << static_cast<unsigned int>(a.get_d());
+        
+        if (a.get_port() != 0)
+        {
+            os << a.get_port();
+        }
+        
+        return os;
     }
 }
