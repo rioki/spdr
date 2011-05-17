@@ -24,15 +24,21 @@ namespace spdr
     unsigned int Node::get_last_message_recived() const
     {
         return last_message_recived;
-    }    
+    }
+
+//------------------------------------------------------------------------------    
+    unsigned int Node::get_last_message_sent() const
+    {
+        return last_message_sent;
+    }
     
 //------------------------------------------------------------------------------    
     Node::Node()
-    : state(CONNECTING), last_message_recived(0) {}
+    : state(CONNECTING), last_message_recived(0), last_message_sent(0) {}
 
 //------------------------------------------------------------------------------    
     Node::Node(const Address& a)
-    : state(CONNECTING), address(a), last_message_recived(0) {}
+    : state(CONNECTING), address(a), last_message_recived(0), last_message_sent(0) {}
 
 //------------------------------------------------------------------------------    
     void Node::set_state(State value)

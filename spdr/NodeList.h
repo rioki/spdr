@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <c9y/Mutex.h>
+#include <c9y/Lock.h>
 
 #include "Node.h"
 #include "Address.h"
@@ -49,6 +50,21 @@ namespace spdr
          * Get all nodes that are timedout. 
          **/
         std::vector<NodePtr> get_timout_nodes();
+        
+        template <typename Pred>
+        std::vector<NodePtr> get_nodes(Pred predicate)
+        {
+            c9y::Lock<c9y::Mutex> lock(mutex);
+            std::vector<NodePtr> result;
+            for (unsigned int i = 0; i < nodes.size(); i++)
+            {
+                if (predicate(nodes[i]))
+                {
+                    result.push_back(nodes[i]);
+                }
+            }
+            return result;
+        }
     
     private:
         c9y::Mutex mutex; // RW-Mutex?

@@ -102,6 +102,7 @@ namespace spdr
         void handle_connection_rejected(MessagePtr msg);
         
         void check_node_timeout();
+        void handle_keep_alive();
     
         Network(const Network&);
         const Network& operator = (const Network&);

@@ -41,10 +41,13 @@ namespace spdr
          **/
         unsigned int get_last_message_recived() const;
     
+        unsigned int get_last_message_sent() const;
+    
     private:
         State state;
         Address address;
         unsigned int last_message_recived;
+        unsigned int last_message_sent;
         
         Node();
         

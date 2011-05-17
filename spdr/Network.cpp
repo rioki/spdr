@@ -19,6 +19,7 @@
 #include "Connect.h"
 #include "ConnectionAccepted.h"
 #include "ConnectionRejected.h"
+#include "KeepAlive.h"
 
 namespace spdr
 {    
@@ -73,6 +74,7 @@ namespace spdr
     {
         NodePtr node = create_node(address);
         node->last_message_recived = get_time();
+        node->last_message_sent = get_time();
         
         MessagePtr conect_message(new Connect(node, protocol_id));
         send(conect_message);
@@ -171,7 +173,8 @@ namespace spdr
                 } 
             }            
             
-            check_node_timeout();
+            handle_keep_alive();
+            check_node_timeout();            
         }                
     }
 
@@ -180,7 +183,7 @@ namespace spdr
     {
         assert(msg);
         assert(msg->get_to());
-        
+                
         Address adr = msg->get_to()->get_address();
         
         std::vector<char> buff;
@@ -188,6 +191,8 @@ namespace spdr
         packer << msg->get_type() << msg->get_payload();
                 
         socket.send(adr, buff);
+        
+        msg->get_to()->last_message_sent = get_time();
     }
 
 //------------------------------------------------------------------------------        
@@ -205,6 +210,8 @@ namespace spdr
             
             musli::MemoryUnpacker unpacker(buff);
             unpacker >> type >> payload;
+            
+            from->last_message_recived = get_time();
             
             return create_message(to, from, type, payload);
         }
@@ -224,7 +231,9 @@ namespace spdr
             case CONNECTION_ACCEPTED:
                 return MessagePtr(new ConnectionAccepted(to, from, payload)); 
             case CONNECTION_REJECTED:
-                return MessagePtr(new ConnectionRejected(to, from, payload));             
+                return MessagePtr(new ConnectionRejected(to, from, payload));
+            case KEEP_ALIVE:
+                return MessagePtr(new KeepAlive(to, from, payload));
             default:
                 return MessagePtr(new GenericMessage(to, from, type, payload));
         }
@@ -248,6 +257,10 @@ namespace spdr
             case CONNECTION_REJECTED:
             {
                 handle_connection_rejected(msg);
+                break;
+            }
+            case KEEP_ALIVE:
+            {
                 break;
             }
             default:
@@ -317,6 +330,24 @@ namespace spdr
             t_nodes[i]->set_state(Node::TIMEOUT);
             node_timeout(t_nodes[i]);
             remove_node(t_nodes[i]);
+        }
+    }
+    
+//------------------------------------------------------------------------------
+    bool needs_keep_alive(NodePtr node)
+    {
+        return (get_time() - node->get_last_message_sent()) > 250;
+    }
+    
+//------------------------------------------------------------------------------    
+    void Network::handle_keep_alive()
+    {
+        std::vector<NodePtr> ka_nodes = nodes.get_nodes(needs_keep_alive);
+        for (unsigned int i = 0; i < ka_nodes.size(); i++)
+        {
+            MessagePtr ka = MessagePtr(new KeepAlive(ka_nodes[i]));
+            ka->from = this_node;
+            send_message(ka);
         }
     }
 }

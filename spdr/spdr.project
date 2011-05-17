@@ -20,6 +20,7 @@
     <File Name="Connect.cpp"/>
     <File Name="ConnectionRejected.cpp"/>
     <File Name="ConnectionAccepted.cpp"/>
+    <File Name="KeepAlive.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
     <File Name="UdpSocket.h"/>
@@ -36,6 +37,7 @@
     <File Name="ConnectionAccepted.h"/>
     <File Name="ConnectionRejected.h"/>
     <File Name="spdr.h"/>
+    <File Name="KeepAlive.h"/>
   </VirtualDirectory>
   <Dependencies Name="Release"/>
   <Dependencies Name="Debug"/>

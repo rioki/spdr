@@ -5,7 +5,6 @@
 
 #include <cassert>
 #include <algorithm>
-#include <c9y/Lock.h>
 
 namespace spdr
 {
@@ -71,6 +70,8 @@ namespace spdr
 //------------------------------------------------------------------------------    
     std::vector<NodePtr> NodeList::get_timout_nodes()
     {
+        c9y::Lock<c9y::Mutex> lock(mutex);
+        
         std::vector<NodePtr> result;
         
         unsigned int now = get_time();
