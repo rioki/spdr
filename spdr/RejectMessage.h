@@ -11,22 +11,21 @@ namespace spdr
     /**
      * Message used when a connection is accepted.
      **/
-    class ConnectionRejected : public Message
+    class RejectMessage : public Message
     {
     public:
         /**
-         * Send Constructor
+         * Deault Constructor
          **/
-        ConnectionRejected(NodePtr to);
+        RejectMessage();
         
-        /**
-         * Recive Constructor
-         **/
-        ConnectionRejected(NodePtr to, NodePtr from, const std::vector<char>& payload);
+        virtual RejectMessage* clone() const;
         
         virtual unsigned int get_type() const;
 
-        virtual std::vector<char> get_payload() const; 
+        virtual std::vector<char> encode() const;
+    
+        virtual void decode(const std::vector<char>& paylod);
     
     private:
         

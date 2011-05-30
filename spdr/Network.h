@@ -17,6 +17,7 @@
 
 #include "MessageQueue.h"
 #include "NodeList.h"
+#include "MessageFactory.h"
 
 namespace spdr
 {
@@ -36,37 +37,40 @@ namespace spdr
         
         bool accepts_connections() const;
         
-        NodePtr get_this_node() const;
+        std::tr1::shared_ptr<Node> get_this_node() const;
         
         /**
          * Signal that is emitted when a node is connected.
          **/
-        sigc::signal<void, NodePtr> node_connected;
+        sigc::signal<void, std::tr1::shared_ptr<Node> > node_connected;
         
         /**
          * Signal that is emitted when a node timesout.
          **/
-        sigc::signal<void, NodePtr> node_timeout;
+        sigc::signal<void, std::tr1::shared_ptr<Node> > node_timeout;
         
         /**
          * Signal that is emitted when a node was disconnected.
          **/
-        sigc::signal<void, NodePtr> node_disconnected;
+        sigc::signal<void, std::tr1::shared_ptr<Node> > node_disconnected;
         
         /**
          * Initiate connection to an other node. 
          **/
-        NodePtr connect(const Address& address);
+        std::tr1::shared_ptr<Node> connect(const Address& address);
         
         /**
          * Signal that is emitted when a message is recived. 
          **/
-        sigc::signal<void, MessagePtr> message_recived;
+        sigc::signal<void, std::tr1::shared_ptr<Message> > message_recived;
+        
+        template <typename Type>
+        void register_message();
         
         /**
          * Send a message. 
          **/
-        void send(MessagePtr message);
+        void send(std::tr1::shared_ptr<Node> node, std::tr1::shared_ptr<Message> message);
     
     private:
         unsigned int protocol_id;
@@ -82,7 +86,7 @@ namespace spdr
         
         MessageQueue send_queue;
         
-        sigc::signal<void, MessagePtr> internal_message_recived;        
+        MessageFactory message_factory;       
         
         void init(unsigned short connect_port);
         
@@ -93,22 +97,28 @@ namespace spdr
         
         // worker thread
         void main();        
-        void send_message(MessagePtr msg);        
-        MessagePtr recive_message();
-        MessagePtr create_message(NodePtr to, NodePtr from, unsigned int type, const std::vector<char>& payload);
-        void handle_internal_message(MessagePtr msg);        
-        void handle_connect(MessagePtr msg);
-        void handle_connection_accepted(MessagePtr msg);
-        void handle_connection_rejected(MessagePtr msg);
+        void send_message(std::tr1::shared_ptr<Message> msg);        
+        std::tr1::shared_ptr<Message> recive_message();
+        std::tr1::shared_ptr<Message> create_message(NodePtr to, NodePtr from, unsigned int type, const std::vector<char>& payload);
+        void handle_internal_message(std::tr1::shared_ptr<Message> msg);        
+        void handle_connect(std::tr1::shared_ptr<Message> msg);
+        void handle_connection_accepted(std::tr1::shared_ptr<Message> msg);
+        void handle_connection_rejected(std::tr1::shared_ptr<Message> msg);
         
         void check_node_timeout();
         void handle_keep_alive();
     
         Network(const Network&);
         const Network& operator = (const Network&);
-    
-    friend class Connector;
     };
+    
+//------------------------------------------------------------------------------
+    template <typename Type>
+    void Network::register_message()
+    {
+        std::tr1::shared_ptr<Message> message(new Type);
+        message_factory.add(message);
+    }
 }
 
 #endif

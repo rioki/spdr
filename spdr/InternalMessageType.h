@@ -11,10 +11,10 @@ namespace spdr
      **/
     enum InternalMessageType
     {
-        CONNECT = 1,
-        CONNECTION_ACCEPTED = 2,        
-        CONNECTION_REJECTED = 3,
-        KEEP_ALIVE = 4
+        CONNECT_MESSAGE = 1,
+        ACCEPT_MESSAGE = 2,        
+        REJECT_MESSAGE = 3,
+        KEEP_ALIVE_MESSAGE = 4
     };
 }
 

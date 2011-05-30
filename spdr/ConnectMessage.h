@@ -11,25 +11,29 @@ namespace spdr
     /**
      * Message used to establish connections.
      **/
-    class Connect : public Message
+    class ConnectMessage : public Message
     {
     public:
         /**
-         * Send Constructor
+         * Deault Constructor
          **/
-        Connect(NodePtr to, unsigned int protocol_id);
+        ConnectMessage();
         
         /**
-         * Recive Constructor
+         * Initialize ConnectionMessage
          **/
-        Connect(NodePtr to, NodePtr from, const std::vector<char>& payload);
+        ConnectMessage(unsigned int protocol_id);
+        
+        virtual ConnectMessage* clone() const;
         
         virtual unsigned int get_type() const;
 
-        virtual std::vector<char> get_payload() const; 
+        virtual std::vector<char> encode() const;
+    
+        virtual void decode(const std::vector<char>& paylod);
 
         unsigned int get_protocol_id() const;
-    
+        
     private:
         unsigned int protocol_id;
     };    

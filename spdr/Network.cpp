@@ -9,17 +9,21 @@
 #include <algorithm>
 #include <iostream>
 
+#include <sanity/trace.h>
+#include <sanity/check.h>
 #include <c9y/Lock.h>
 #include <c9y/utility.h>
 #include <musli/MemoryPacker.h>
 #include <musli/MemoryUnpacker.h>
 
 #include "InternalMessageType.h"
-#include "GenericMessage.h"
-#include "Connect.h"
-#include "ConnectionAccepted.h"
-#include "ConnectionRejected.h"
-#include "KeepAlive.h"
+#include "ConnectMessage.h"
+#include "AcceptMessage.h"
+#include "RejectMessage.h"
+#include "KeepAliveMessage.h"
+
+using namespace std;
+using namespace std::tr1;
 
 namespace spdr
 {    
@@ -76,30 +80,20 @@ namespace spdr
         node->last_message_recived = get_time();
         node->last_message_sent = get_time();
         
-        MessagePtr conect_message(new Connect(node, protocol_id));
-        send(conect_message);
+        std::tr1::shared_ptr<Message> conect_message(new ConnectMessage(protocol_id));
+        send(node, conect_message);
         
         return node;
     }
 
 //------------------------------------------------------------------------------    
-    void Network::send(MessagePtr message)
+    void Network::send(std::tr1::shared_ptr<Node> node, std::tr1::shared_ptr<Message> message)
     {
-        if (! message)
-        {
-            throw std::invalid_argument("message");
-        }
-        if (! message->to)
-        {
-            throw std::invalid_argument("message->to");
-        }
+        CHECK_ARGUMENT(message);
         
-        // We need to set the from field, since messages may be created with
-        // a null from; which means that it is from this node.         
-        if (! message->from)
-        {
-            message->from = get_this_node();
-        }
+        message->set_to(node);
+        message->set_from(get_this_node());
+        
         send_queue.push(message);        
     }
 
@@ -113,6 +107,11 @@ namespace spdr
     void Network::init(unsigned short cp)
     {
         connect_port = cp;
+        
+        register_message<ConnectMessage>();
+        register_message<AcceptMessage>();
+        register_message<RejectMessage>();
+        register_message<KeepAliveMessage>();
         
         this_node = NodePtr(new Node);
         running = true;
@@ -152,43 +151,50 @@ namespace spdr
     {
         while (running)
         {
-            // send 
-            MessagePtr msg = send_queue.pop();
-            if (msg)
+            try
             {
-                send_message(msg);
-            }
-            
-            // recive
-            msg = recive_message();
-            if (msg)
-            {
-                if (msg->get_type() < 128)
+                // send 
+                std::tr1::shared_ptr<Message> msg = send_queue.pop();
+                if (msg)
                 {
-                    handle_internal_message(msg);
+                    send_message(msg);
                 }
-                else
+                
+                // recive
+                msg = recive_message();
+                if (msg)
                 {
-                    message_recived(msg);
-                } 
-            }            
-            
-            handle_keep_alive();
-            check_node_timeout();            
+                    if (msg->get_type() < 128)
+                    {
+                        handle_internal_message(msg);
+                    }
+                    else
+                    {
+                        message_recived(msg);
+                    } 
+                }            
+                
+                handle_keep_alive();
+                check_node_timeout();            
+            }
+            catch (const std::exception& ex)
+            {
+                TRACE_ERROR(ex.what());
+            }
         }                
     }
 
 //------------------------------------------------------------------------------    
-    void Network::send_message(MessagePtr msg)
+    void Network::send_message(std::tr1::shared_ptr<Message> msg)
     {
-        assert(msg);
-        assert(msg->get_to());
+        CHECK_ARGUMENT(msg);
+        CHECK_ARGUMENT(msg->get_to());
                 
         Address adr = msg->get_to()->get_address();
         
         std::vector<char> buff;
         musli::MemoryPacker packer(buff);
-        packer << msg->get_type() << msg->get_payload();
+        packer << msg->get_type() << msg->encode();
                 
         socket.send(adr, buff);
         
@@ -196,7 +202,7 @@ namespace spdr
     }
 
 //------------------------------------------------------------------------------        
-    MessagePtr Network::recive_message()
+    std::tr1::shared_ptr<Message> Network::recive_message()
     {
         Address address;
         std::vector<char> buff;
@@ -217,49 +223,44 @@ namespace spdr
         }
         else
         {
-            return MessagePtr();
+            return std::tr1::shared_ptr<Message>();
         }
     }
 
 //------------------------------------------------------------------------------    
-    MessagePtr Network::create_message(NodePtr to, NodePtr from, unsigned int type, const std::vector<char>& payload)
+    shared_ptr<Message> Network::create_message(shared_ptr<Node> to, shared_ptr<Node> from, unsigned int type, const std::vector<char>& payload)
     {
-        switch (type)
-        {
-            case CONNECT:
-                return MessagePtr(new Connect(to, from, payload)); 
-            case CONNECTION_ACCEPTED:
-                return MessagePtr(new ConnectionAccepted(to, from, payload)); 
-            case CONNECTION_REJECTED:
-                return MessagePtr(new ConnectionRejected(to, from, payload));
-            case KEEP_ALIVE:
-                return MessagePtr(new KeepAlive(to, from, payload));
-            default:
-                return MessagePtr(new GenericMessage(to, from, type, payload));
-        }
+        shared_ptr<Message> message = message_factory.create(type);
+        ASSERT(message);
+        
+        message->set_to(to);
+        message->set_from(from);
+        message->decode(payload);
+        
+        return message;
     }
     
 //------------------------------------------------------------------------------    
-    void Network::handle_internal_message(MessagePtr msg)
+    void Network::handle_internal_message(std::tr1::shared_ptr<Message> msg)
     {
         switch (msg->get_type())
         {
-            case CONNECT:
+            case CONNECT_MESSAGE:
             {
                 handle_connect(msg);
                 break;
             }
-            case CONNECTION_ACCEPTED:
+            case ACCEPT_MESSAGE:
             {
                 handle_connection_accepted(msg);
                 break;
             }                
-            case CONNECTION_REJECTED:
+            case REJECT_MESSAGE:
             {
                 handle_connection_rejected(msg);
                 break;
             }
-            case KEEP_ALIVE:
+            case KEEP_ALIVE_MESSAGE:
             {
                 break;
             }
@@ -272,48 +273,45 @@ namespace spdr
     }
     
 //------------------------------------------------------------------------------    
-    void Network::handle_connect(MessagePtr m)
+    void Network::handle_connect(shared_ptr<Message> m)
     {
-        std::tr1::shared_ptr<Connect> msg = std::tr1::dynamic_pointer_cast<Connect>(m);
-        assert(msg);
+        shared_ptr<ConnectMessage> msg = dynamic_pointer_cast<ConnectMessage>(m);
+        ASSERT(msg);
         
         if (protocol_id == msg->get_protocol_id())
         {        
-            NodePtr from = msg->get_from();
+            shared_ptr<Node> from = msg->get_from();
             from->set_state(Node::CONNECTED);
             node_connected(from);
             nodes.add(from);
-            
-            MessagePtr ack_msg(new ConnectionAccepted(from));
-            send(ack_msg);
+                       
+            send(from, shared_ptr<Message>(new AcceptMessage));
         }
         else
         {
-            NodePtr from = msg->get_from();            
-            
-            MessagePtr ack_msg(new ConnectionRejected(from));
-            send(ack_msg);
+            shared_ptr<Node> from = msg->get_from();
+            send(from, shared_ptr<Message>(new RejectMessage));
         }
     }
     
 //------------------------------------------------------------------------------    
-    void Network::handle_connection_accepted(MessagePtr m)
+    void Network::handle_connection_accepted(shared_ptr<Message> m)
     {
-        std::tr1::shared_ptr<ConnectionAccepted> msg = std::tr1::dynamic_pointer_cast<ConnectionAccepted>(m);
-        assert(msg);
+        shared_ptr<AcceptMessage> msg = dynamic_pointer_cast<AcceptMessage>(m);
+        ASSERT(msg);
         
-        NodePtr from = msg->get_from();
+        shared_ptr<Node> from = msg->get_from();
         from->set_state(Node::CONNECTED);
         node_connected(from);
     }
     
 //------------------------------------------------------------------------------    
-    void Network::handle_connection_rejected(MessagePtr m)
+    void Network::handle_connection_rejected(std::tr1::shared_ptr<Message> m)
     {
         // TODO: add reason to rejection
         
-        std::tr1::shared_ptr<ConnectionRejected> msg = std::tr1::dynamic_pointer_cast<ConnectionRejected>(m);
-        assert(msg);
+        shared_ptr<RejectMessage> msg = dynamic_pointer_cast<RejectMessage>(m);
+        ASSERT(msg);
         
         NodePtr from = msg->get_from();
         from->set_state(Node::DISCONNECTED);
@@ -345,8 +343,10 @@ namespace spdr
         std::vector<NodePtr> ka_nodes = nodes.get_nodes(needs_keep_alive);
         for (unsigned int i = 0; i < ka_nodes.size(); i++)
         {
-            MessagePtr ka = MessagePtr(new KeepAlive(ka_nodes[i]));
-            ka->from = this_node;
+            shared_ptr<Message> ka(new KeepAliveMessage);
+            ka->set_to(ka_nodes[i]);
+            ka->set_from(this_node);
+            
             send_message(ka);
         }
     }

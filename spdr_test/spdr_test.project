@@ -13,10 +13,10 @@
     <File Name="AddressTest.cpp"/>
     <File Name="NetworkTest.cpp"/>
   </VirtualDirectory>
-  <Dependencies Name="Release">
+  <Dependencies Name="Debug">
     <Project Name="spdr"/>
   </Dependencies>
-  <Dependencies Name="Debug">
+  <Dependencies Name="Release">
     <Project Name="spdr"/>
   </Dependencies>
   <Settings Type="Executable">
@@ -34,16 +34,22 @@
         <IncludePath Value="../spdr"/>
         <IncludePath Value="$(SIGC_DIR)/include"/>
         <IncludePath Value="$(C9Y_DIR)/include"/>
+        <IncludePath Value="$(MUSLI_DIR)/include"/>
+        <IncludePath Value="$(SANITY_DIR)/include"/>
         <IncludePath Value="$(UNIT_TEST_DIR)/include"/>
       </Compiler>
       <Linker Options="" Required="yes">
         <LibraryPath Value="../spdr/$(ConfigurationName)"/>
         <LibraryPath Value="$(SIGC_DIR)/lib"/>
         <LibraryPath Value="$(C9Y_DIR)/lib"/>
+        <LibraryPath Value="$(MUSLI_DIR)/lib"/>
+        <LibraryPath Value="$(SANITY_DIR)/lib"/>
         <LibraryPath Value="$(UNIT_TEST_DIR)/lib"/>
         <Library Value="spdr"/>
         <Library Value="sigc++"/>
         <Library Value="c9y"/>
+        <Library Value="musli"/>
+        <Library Value="sanity"/>
         <Library Value="UnitTest++"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
@@ -77,16 +83,22 @@
         <IncludePath Value="../spdr"/>
         <IncludePath Value="$(SIGC_DIR)/include"/>
         <IncludePath Value="$(C9Y_DIR)/include"/>
+        <IncludePath Value="$(MUSLI_DIR)/include"/>
+        <IncludePath Value="$(SANITY_DIR)/include"/>
         <IncludePath Value="$(UNIT_TEST_DIR)/include"/>
       </Compiler>
       <Linker Options="-O2" Required="yes">
         <LibraryPath Value="../spdr/$(ConfigurationName"/>
         <LibraryPath Value="$(SIGC_DIR)/lib"/>
         <LibraryPath Value="$(C9Y_DIR)/lib"/>
+        <LibraryPath Value="$(MUSLI_DIR)/lib"/>
+        <LibraryPath Value="$(SANITY_DIR)/lib"/>
         <LibraryPath Value="$(UNIT_TEST_DIR)/lib"/>
         <Library Value="spdr"/>
         <Library Value="sigc++"/>
         <Library Value="c9y"/>
+        <Library Value="musli"/>
+        <Library Value="sanity"/>
         <Library Value="UnitTest++"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>

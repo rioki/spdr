@@ -11,22 +11,26 @@ namespace spdr
     /**
      * Message used when a connection is accepted.
      **/
-    class KeepAlive : public Message
+    class KeepAliveMessage : public Message
     {
     public:
         /**
-         * Send Constructor
+         * Deault Constructor
          **/
-        KeepAlive(NodePtr to);
+        KeepAliveMessage();
         
         /**
-         * Recive Constructor
+         * Initialize ConnectionMessage
          **/
-        KeepAlive(NodePtr to, NodePtr from, const std::vector<char>& payload);
+        KeepAliveMessage(unsigned int protocol_id);
+        
+        virtual KeepAliveMessage* clone() const;
         
         virtual unsigned int get_type() const;
 
-        virtual std::vector<char> get_payload() const; 
+        virtual std::vector<char> encode() const;
+    
+        virtual void decode(const std::vector<char>& paylod);
     
     private:
         

@@ -14,13 +14,13 @@
     <File Name="Network.cpp"/>
     <File Name="Node.cpp"/>
     <File Name="Message.cpp"/>
-    <File Name="GenericMessage.cpp"/>
     <File Name="MessageQueue.cpp"/>
     <File Name="NodeList.cpp"/>
-    <File Name="Connect.cpp"/>
-    <File Name="ConnectionRejected.cpp"/>
-    <File Name="ConnectionAccepted.cpp"/>
-    <File Name="KeepAlive.cpp"/>
+    <File Name="MessageFactory.cpp"/>
+    <File Name="ConnectMessage.cpp"/>
+    <File Name="AcceptMessage.cpp"/>
+    <File Name="KeepAliveMessage.cpp"/>
+    <File Name="RejectMessage.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
     <File Name="UdpSocket.h"/>
@@ -28,19 +28,18 @@
     <File Name="Network.h"/>
     <File Name="Node.h"/>
     <File Name="Message.h"/>
-    <File Name="GenericMessage.h"/>
     <File Name="InternalMessageType.h"/>
     <File Name="WsaSentry.h"/>
     <File Name="MessageQueue.h"/>
     <File Name="NodeList.h"/>
-    <File Name="Connect.h"/>
-    <File Name="ConnectionAccepted.h"/>
-    <File Name="ConnectionRejected.h"/>
     <File Name="spdr.h"/>
-    <File Name="KeepAlive.h"/>
+    <File Name="MessageFactory.h"/>
+    <File Name="ConnectMessage.h"/>
+    <File Name="AcceptMessage.h"/>
+    <File Name="KeepAliveMessage.h"/>
+    <File Name="RejectMessage.h"/>
   </VirtualDirectory>
   <Dependencies Name="Release"/>
-  <Dependencies Name="Debug"/>
   <Settings Type="Dynamic Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="">
@@ -56,15 +55,18 @@
         <IncludePath Value="$(SIGC_DIR)/include"/>
         <IncludePath Value="$(C9Y_DIR)/include"/>
         <IncludePath Value="$(MUSLI_DIR)/include"/>
+        <IncludePath Value="$(SANITY_DIR)/include"/>
       </Compiler>
       <Linker Options="" Required="yes">
         <LibraryPath Value="$(SIGC_DIR)/lib"/>
         <LibraryPath Value="$(C9Y_DIR)/lib"/>
         <LibraryPath Value="$(MUSLI_DIR)/lib"/>
+        <LibraryPath Value="$(SANITY_DIR)/lib"/>
         <Library Value="wsock32"/>
         <Library Value="sigc++"/>
         <Library Value="c9y"/>
         <Library Value="musli"/>
+        <Library Value="sanity"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName).dll" IntermediateDirectory="./Debug" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes"/>
@@ -95,15 +97,18 @@
         <IncludePath Value="$(SIGC_DIR)/include"/>
         <IncludePath Value="$(C9Y_DIR)/include"/>
         <IncludePath Value="$(MUSLI_DIR)/include"/>
+        <IncludePath Value="$(SANITY_DIR)/include"/>
       </Compiler>
       <Linker Options="-O2" Required="yes">
         <LibraryPath Value="$(SIGC_DIR)/lib"/>
         <LibraryPath Value="$(C9Y_DIR)/lib"/>
         <LibraryPath Value="$(MUSLI_DIR)/lib"/>
+        <LibraryPath Value="$(SANITY_DIR)/lib"/>
         <Library Value="wsock32"/>
         <Library Value="sigc++"/>
         <Library Value="c9y"/>
         <Library Value="musli"/>
+        <Library Value="sanity"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName).dll" IntermediateDirectory="./Release" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes"/>
@@ -130,4 +135,5 @@
       </AdditionalRules>
     </Configuration>
   </Settings>
+  <Dependencies Name="Debug"/>
 </CodeLite_Project>

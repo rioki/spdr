@@ -17,33 +17,62 @@ namespace spdr
     class Message
     {
     public:
-    
-        Message(NodePtr to);
+        /**
+         * Constructor 
+         **/
+        Message();
         
-        Message(NodePtr to, NodePtr from);
-        
+        /**
+         * Denstructor 
+         **/
         virtual ~Message();
         
-        NodePtr get_from() const;
+        /**
+         * Make a copy of this message. 
+         **/
+        virtual Message* clone() const = 0;
         
-        NodePtr get_to() const;
-        
+        /**
+         * Get the message type id. 
+         **/
         virtual unsigned int get_type() const = 0;
         
-        virtual std::vector<char> get_payload() const = 0;        
-    
-    private:
-        NodePtr from;
-        NodePtr to;
+        /**
+         * Set the message's recipient. 
+         **/
+        void set_to(std::tr1::shared_ptr<Node> value);
         
-        Message(const Message&);
-        const Message& operator = (const Message&);
+        /**
+         * Get the message's recipient. 
+         **/
+        std::tr1::shared_ptr<Node> get_to() const;
+        
+        /**
+         * Set the message's sender. 
+         **/
+        void set_from(std::tr1::shared_ptr<Node> value);
+        
+        /**
+         * Get the message's sender. 
+         **/
+        std::tr1::shared_ptr<Node> get_from() const;        
+
+        /**
+         * Encode the message to a memory buffer; 
+         **/
+        virtual std::vector<char> encode() const = 0;
+    
+        /**
+         * Decode the message from a memory buffer; 
+         **/
+        virtual void decode(const std::vector<char>& paylod) = 0;
+
+    private:        
+        std::tr1::shared_ptr<Node> to;
+        std::tr1::shared_ptr<Node> from;
     
     friend class Network;
-    };
-
-    typedef std::tr1::shared_ptr<Message> MessagePtr;
-    
+    };    
 }
 
 #endif

@@ -14,25 +14,25 @@ namespace spdr
     MessageQueue::~MessageQueue() {}
     
 //------------------------------------------------------------------------------    
-    void MessageQueue::push(MessagePtr message) 
+    void MessageQueue::push(std::tr1::shared_ptr<Message> message) 
     {
         c9y::Lock<c9y::Mutex> lock(mutex);
         queue.push(message);
     }
     
 //------------------------------------------------------------------------------    
-    MessagePtr MessageQueue::pop() 
+    std::tr1::shared_ptr<Message> MessageQueue::pop() 
     {
         c9y::Lock<c9y::Mutex> lock(mutex);
         if (!queue.empty())
         {
-            MessagePtr message = queue.front();
+            std::tr1::shared_ptr<Message> message = queue.front();
             queue.pop();
             return message;
         }
         else
         {
-            return MessagePtr();
+            return std::tr1::shared_ptr<Message>();
         }
     }
 }

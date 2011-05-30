@@ -4,10 +4,16 @@
 #include <stdexcept>
 #include <UnitTest++/UnitTest++.h>
 #include <c9y/utility.h>
+#include <musli/MemoryPacker.h>
+#include <musli/MemoryUnpacker.h>
 #include <sstream>
 
 #include "Network.h"
-#include "GenericMessage.h"
+
+using namespace std;
+using namespace std::tr1;
+using namespace spdr;
+using namespace musli;
 
 SUITE(Network)
 {
@@ -48,7 +54,7 @@ SUITE(Network)
             // an error on the line...
         }
         
-        void track_message_recived(spdr::MessagePtr msg)
+        void track_message_recived(shared_ptr<Message> msg)
         {
             transcript << "Message Recived: " << msg->get_type() << std::endl;
             last_message = msg;
@@ -70,7 +76,7 @@ SUITE(Network)
             return transcript.str();
         }
         
-        spdr::MessagePtr get_last_message() const
+        shared_ptr<Message> get_last_message() const
         {
             return last_message;
         }
@@ -80,7 +86,7 @@ SUITE(Network)
         c9y::Condition message_condition;
         
         std::stringstream transcript;
-        spdr::MessagePtr last_message;
+        shared_ptr<Message> last_message;
     };
     
 //------------------------------------------------------------------------------
@@ -101,54 +107,24 @@ SUITE(Network)
 //------------------------------------------------------------------------------
     TEST(connect)
     {
-        spdr::Network server(TEST_PROTOCOLL_ID, 1340);
+        Network server(TEST_PROTOCOLL_ID, 1340);
         Tracker server_tracker(server);
         
-        spdr::Network client(TEST_PROTOCOLL_ID);
+        Network client(TEST_PROTOCOLL_ID);
         Tracker client_tracker(client);
         
-        spdr::NodePtr server_node;
+        shared_ptr<Node> server_node;
         server_node = client.connect(spdr::Address(127,0,0,1, 1340));
         
-        CHECK_EQUAL(spdr::Node::CONNECTING, server_node->get_state());
+        CHECK_EQUAL(Node::CONNECTING, server_node->get_state());
         
         client_tracker.wait_connection();
         
-        CHECK_EQUAL(spdr::Node::CONNECTED, server_node->get_state());
+        CHECK_EQUAL(Node::CONNECTED, server_node->get_state());
         
         std::string ref = "Node Connected: CONNECTED\n";
         CHECK_EQUAL(ref, client_tracker.get_tanscript());
         CHECK_EQUAL(ref, server_tracker.get_tanscript());
-    }
-
-//------------------------------------------------------------------------------
-    TEST(send)
-    {
-        spdr::Network server(TEST_PROTOCOLL_ID, 1341);
-        Tracker server_tracker(server);
-        
-        spdr::Network client(TEST_PROTOCOLL_ID);
-        Tracker client_tracker(client);
-        
-        spdr::NodePtr node = client.connect(spdr::Address(127,0,0,1, 1341));
-        
-        client_tracker.wait_connection();
-        
-        std::string value = "Test";
-        std::vector<char> data(value.begin(), value.end());
-        spdr::MessagePtr msg(new spdr::GenericMessage(node, 1300, data));
-        client.send(msg);
-        
-        server_tracker.wait_message();
-        
-        spdr::MessagePtr last_message = server_tracker.get_last_message();
-        
-        CHECK(last_message);
-        if (last_message)
-        {
-            CHECK_EQUAL(1300, last_message->get_type());
-            CHECK(data == last_message->get_payload());
-        }
     }
     
 //------------------------------------------------------------------------------    
@@ -178,6 +154,85 @@ SUITE(Network)
         
         std::string ref = "Node Disconnect: DISCONNECTED\n";
         CHECK_EQUAL(ref, client_tracker.get_tanscript());        
+    }
+//------------------------------------------------------------------------------
+    class TestMessage : public Message
+    {
+    public:
+        
+        TestMessage()
+        : severity(0) {}
+        
+        TestMessage(unsigned int s, const string& m)
+        : severity(s), message(m) {}
+        
+        TestMessage* clone() const
+        {
+            return new TestMessage(*this);
+        }
+        
+        unsigned int get_type() const
+        {
+            return 1337;
+        }
+
+        vector<char> encode() const
+        {
+            vector<char> payload;
+            
+            MemoryPacker packer(payload);
+            packer << severity << message;
+            
+            return payload;
+        }
+    
+        void decode(const vector<char>& payload)
+        {
+            MemoryUnpacker unpacker(payload);
+            unpacker >> severity >> message;
+        }
+        
+        unsigned int get_severity() const
+        {
+            return severity;
+        }
+        
+        const std::string& get_message() const
+        {
+            return message;
+        }
+    
+    private:        
+        unsigned int severity;
+        std::string message;        
+    };
+    
+//------------------------------------------------------------------------------
+    TEST(send)
+    {
+        Network server(TEST_PROTOCOLL_ID, 1342);
+        server.register_message<TestMessage>();
+        Tracker server_tracker(server);
+        
+        Network client(TEST_PROTOCOLL_ID);
+        client.register_message<TestMessage>();
+        Tracker client_tracker(client);
+        
+        shared_ptr<Node> node = client.connect(spdr::Address(127,0,0,1, 1342));        
+        client_tracker.wait_connection();
+        
+        shared_ptr<Message> msg(new TestMessage(1, "Dump the warp core!"));
+        client.send(node, msg);
+        
+        server_tracker.wait_message();
+        shared_ptr<TestMessage> rmsg = dynamic_pointer_cast<TestMessage>(server_tracker.get_last_message());
+        
+        CHECK(rmsg);        
+        if (rmsg)
+        {
+            CHECK_EQUAL(1, rmsg->get_severity());
+            CHECK_EQUAL("Dump the warp core!", rmsg->get_message());
+        }
     }
 }
 
