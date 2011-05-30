@@ -5,6 +5,7 @@
 #define _SPDR_NETWORK_H_
 
 #include <queue>
+#include <string>
 #include <sigc++/signal.h>
 #include <c9y/Thread.h>
 #include <c9y/Mutex.h>
@@ -16,7 +17,6 @@
 #include "Message.h"
 
 #include "MessageQueue.h"
-#include "NodeList.h"
 #include "MessageFactory.h"
 
 namespace spdr
@@ -28,6 +28,8 @@ namespace spdr
         Network(unsigned int protocol_id);
         
         Network(unsigned int protocol_id, unsigned short connect_port);
+        
+        Network(unsigned int protocol_id, unsigned short connect_port, sigc::slot<bool, std::tr1::shared_ptr<Node>, std::string, std::string> auth_func);
         
         ~Network();
         
@@ -57,7 +59,14 @@ namespace spdr
         /**
          * Initiate connection to an other node. 
          **/
-        std::tr1::shared_ptr<Node> connect(const Address& address);
+        std::tr1::shared_ptr<Node> connect(const Address& address, const std::string& user = "", const std::string& pass = "");
+        
+        /**
+         * Get all the nodes connected to this server.
+         **/
+        std::vector<std::tr1::shared_ptr<Node> > get_nodes() const;
+        
+        void set_auth_function(sigc::slot<bool, std::tr1::shared_ptr<Node>, std::string, std::string> func);
         
         /**
          * Signal that is emitted when a message is recived. 
@@ -76,24 +85,27 @@ namespace spdr
         unsigned int protocol_id;
         unsigned short connect_port;
         NodePtr this_node;
-        
-        NodeList nodes;
+                
+        std::vector<std::tr1::shared_ptr<Node> > nodes;
+        mutable c9y::Mutex nodes_mutex;
         
         UdpSocket socket;
         
         bool running;
         c9y::Thread worker_thread; 
         
-        MessageQueue send_queue;
-        
+        MessageQueue send_queue;        
         MessageFactory message_factory;       
+        
+        sigc::slot<bool, std::tr1::shared_ptr<Node>, std::string, std::string> auth_func;
         
         void init(unsigned short connect_port);
         
         // node handling
-        NodePtr create_node(const Address& address);
-        void remove_node(NodePtr node);
-        NodePtr get_node_from_address(const Address& address);
+        std::tr1::shared_ptr<Node> create_node(const Address& address);
+        void add_node(std::tr1::shared_ptr<Node> node);
+        void remove_node(std::tr1::shared_ptr<Node> node);
+        std::tr1::shared_ptr<Node> get_node_from_address(const Address& address);
         
         // worker thread
         void main();        

@@ -7,7 +7,7 @@
   </Plugins>
   <Description/>
   <Dependencies/>
-  <VirtualDirectory Name="src">
+  <VirtualDirectory Name="Source Files">
     <File Name="UdpSocket.cpp"/>
     <File Name="WsaSentry.cpp"/>
     <File Name="Address.cpp"/>
@@ -15,14 +15,13 @@
     <File Name="Node.cpp"/>
     <File Name="Message.cpp"/>
     <File Name="MessageQueue.cpp"/>
-    <File Name="NodeList.cpp"/>
     <File Name="MessageFactory.cpp"/>
     <File Name="ConnectMessage.cpp"/>
     <File Name="AcceptMessage.cpp"/>
     <File Name="KeepAliveMessage.cpp"/>
     <File Name="RejectMessage.cpp"/>
   </VirtualDirectory>
-  <VirtualDirectory Name="include">
+  <VirtualDirectory Name="Header Files">
     <File Name="UdpSocket.h"/>
     <File Name="Address.h"/>
     <File Name="Network.h"/>
@@ -31,7 +30,6 @@
     <File Name="InternalMessageType.h"/>
     <File Name="WsaSentry.h"/>
     <File Name="MessageQueue.h"/>
-    <File Name="NodeList.h"/>
     <File Name="spdr.h"/>
     <File Name="MessageFactory.h"/>
     <File Name="ConnectMessage.h"/>

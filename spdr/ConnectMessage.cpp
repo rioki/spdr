@@ -11,13 +11,12 @@
 namespace spdr
 {
 //------------------------------------------------------------------------------
-    ConnectMessage::ConnectMessage()
-    : protocol_id(0) {}
+    ConnectMessage::ConnectMessage() {}
     
     
 //------------------------------------------------------------------------------
-    ConnectMessage::ConnectMessage(unsigned int pi)
-    : protocol_id(pi) {}
+    ConnectMessage::ConnectMessage(const std::string& u, const std::string& p)
+    : user(u), pass(p) {}
 
 //------------------------------------------------------------------------------    
     ConnectMessage* ConnectMessage::clone() const
@@ -37,7 +36,7 @@ namespace spdr
         std::vector<char> paylod;
         
         musli::MemoryPacker packer(paylod);
-        packer << protocol_id;
+        packer << user << pass;
         
         return paylod;
     }
@@ -46,12 +45,18 @@ namespace spdr
     void ConnectMessage::decode(const std::vector<char>& paylod)
     {
         musli::MemoryUnpacker unpacker(paylod);
-        unpacker >> protocol_id;
+        unpacker >> user >> pass;
     }
 
 //------------------------------------------------------------------------------    
-    unsigned int ConnectMessage::get_protocol_id() const
+    const std::string& ConnectMessage::get_user() const
     {
-        return protocol_id;
+        return user;
+    }
+
+//------------------------------------------------------------------------------        
+    const std::string& ConnectMessage::get_pass() const
+    {
+        return pass;
     }
 }

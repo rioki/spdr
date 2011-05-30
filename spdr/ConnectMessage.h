@@ -6,6 +6,8 @@
 
 #include "Message.h"
 
+#include <string>
+
 namespace spdr
 {
     /**
@@ -22,7 +24,7 @@ namespace spdr
         /**
          * Initialize ConnectionMessage
          **/
-        ConnectMessage(unsigned int protocol_id);
+        ConnectMessage(const std::string& user, const std::string& pass);
         
         virtual ConnectMessage* clone() const;
         
@@ -32,10 +34,13 @@ namespace spdr
     
         virtual void decode(const std::vector<char>& paylod);
 
-        unsigned int get_protocol_id() const;
+        const std::string& get_user() const;
+        
+        const std::string& get_pass() const;
         
     private:
-        unsigned int protocol_id;
+        std::string user;
+        std::string pass;
     };    
 }
 

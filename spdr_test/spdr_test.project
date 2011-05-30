@@ -7,11 +7,12 @@
   </Plugins>
   <Description/>
   <Dependencies/>
-  <VirtualDirectory Name="src">
+  <VirtualDirectory Name="Source Files">
     <File Name="main.cpp"/>
     <File Name="UdpSocketTest.cpp"/>
     <File Name="AddressTest.cpp"/>
     <File Name="NetworkTest.cpp"/>
+    <File Name="AuthTest.cpp"/>
   </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="spdr"/>
@@ -128,4 +129,7 @@
       </AdditionalRules>
     </Configuration>
   </Settings>
+  <VirtualDirectory Name="Header Files">
+    <File Name="Tracker.h"/>
+  </VirtualDirectory>
 </CodeLite_Project>

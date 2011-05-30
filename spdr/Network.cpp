@@ -24,6 +24,7 @@
 
 using namespace std;
 using namespace std::tr1;
+using namespace c9y;
 
 namespace spdr
 {    
@@ -31,11 +32,25 @@ namespace spdr
     unsigned int get_time()
     {
         return std::clock() / (CLOCKS_PER_SEC / 1000);
-    }    
+    }   
+
+//------------------------------------------------------------------------------    
+    bool false_auth_func(shared_ptr<Node> node, string user, string pass) 
+    {
+        return false;
+    }
+     
+
+//------------------------------------------------------------------------------    
+    bool true_auth_func(shared_ptr<Node> node, string user, string pass) 
+    {
+        return true;
+    }
     
 //------------------------------------------------------------------------------
     Network::Network(unsigned int pi)
-    : protocol_id(pi), worker_thread(sigc::mem_fun(this, &Network::main))
+    : protocol_id(pi), worker_thread(sigc::mem_fun(this, &Network::main)),
+      auth_func(sigc::ptr_fun(false_auth_func))
     {
         init(0);
     }
@@ -43,10 +58,18 @@ namespace spdr
 //------------------------------------------------------------------------------    
     Network::Network(unsigned int pi, unsigned short cp)
     : protocol_id(pi), worker_thread(sigc::mem_fun(this, &Network::main)),
-      socket(cp)
+      socket(cp), auth_func(sigc::ptr_fun(true_auth_func))
     {
         init(cp);
-    }    
+    }
+
+//------------------------------------------------------------------------------
+    Network::Network(unsigned int pi, unsigned short cp, sigc::slot<bool, std::tr1::shared_ptr<Node>, std::string, std::string> af)    
+    : protocol_id(pi), worker_thread(sigc::mem_fun(this, &Network::main)),
+      socket(cp), auth_func(af)
+    {
+        init(cp);
+    }
 
 //------------------------------------------------------------------------------
     Network::~Network() 
@@ -74,16 +97,27 @@ namespace spdr
     }
 
 //------------------------------------------------------------------------------    
-    NodePtr Network::connect(const Address& address)
+    NodePtr Network::connect(const Address& address, const std::string& user, const std::string& pass)
     {
         NodePtr node = create_node(address);
         node->last_message_recived = get_time();
         node->last_message_sent = get_time();
         
-        std::tr1::shared_ptr<Message> conect_message(new ConnectMessage(protocol_id));
+        std::tr1::shared_ptr<Message> conect_message(new ConnectMessage(user, pass));
         send(node, conect_message);
         
+        this_node->user_name = user;
+        
         return node;
+    }
+
+//------------------------------------------------------------------------------        
+    std::vector<std::tr1::shared_ptr<Node> > Network::get_nodes() const
+    {
+        Lock<Mutex> lock(nodes_mutex);
+        std::vector<std::tr1::shared_ptr<Node> > copy = nodes;
+        
+        return copy;
     }
 
 //------------------------------------------------------------------------------    
@@ -119,30 +153,60 @@ namespace spdr
     }
 
 //------------------------------------------------------------------------------    
-    NodePtr Network::create_node(const Address& address)
+    shared_ptr<Node> Network::create_node(const Address& address)
     {
-        NodePtr node(new Node(address));
-        nodes.add(node);
+        shared_ptr<Node> node(new Node(address));
+        add_node(node);
         return node;
     }
 
 //------------------------------------------------------------------------------    
-    void Network::remove_node(NodePtr node)
+    void Network::add_node(shared_ptr<Node> node)
     {
-        nodes.remove(node);
+        Lock<Mutex> lock(nodes_mutex);
+        nodes.push_back(node);
     }
+
+//------------------------------------------------------------------------------    
+    void Network::remove_node(shared_ptr<Node> node)
+    {
+        Lock<Mutex> lock(nodes_mutex);
+        
+        vector<shared_ptr<Node> >::iterator iter;
+        iter = find(nodes.begin(), nodes.end(), node);
+        ASSERT(iter != nodes.end());
+        nodes.erase(iter);
+    }
+    
+//------------------------------------------------------------------------------    
+    struct address_equals
+    {
+        const Address& address;
+        
+        address_equals(const Address& a)
+        : address(a) {}
+        
+        bool operator () (NodePtr node)
+        {
+            return address == node->get_address();
+        }
+    };
 
 //------------------------------------------------------------------------------    
     NodePtr Network::get_node_from_address(const Address& address)
     {
-        NodePtr node = nodes.get_node_by_address(address);
-        if (node)
+        Lock<Mutex> lock(nodes_mutex);
+        
+         vector<shared_ptr<Node> >::iterator iter;
+        iter = std::find_if(nodes.begin(), nodes.end(), address_equals(address));
+        
+        if (iter != nodes.end())
         {
-            return node;
+            return *iter;
         }
         else
         {
-            return NodePtr(new Node(address));
+            return shared_ptr<Node>(new Node(address));
         }
     }
     
@@ -194,7 +258,7 @@ namespace spdr
         
         std::vector<char> buff;
         musli::MemoryPacker packer(buff);
-        packer << msg->get_type() << msg->encode();
+        packer << protocol_id << msg->get_type() << msg->encode();
                 
         socket.send(adr, buff);
         
@@ -209,22 +273,24 @@ namespace spdr
         std::tr1::tie(address, buff) = socket.recive();
         if (! buff.empty())
         {
-            NodePtr to = get_this_node();
-            NodePtr from = get_node_from_address(address);
+            
+            unsigned int pi;
             unsigned int type;
             std::vector<char> payload;
             
             musli::MemoryUnpacker unpacker(buff);
-            unpacker >> type >> payload;
+            unpacker >> pi >> type >> payload;
             
-            from->last_message_recived = get_time();
+            if (pi == protocol_id)
+            {            
+                NodePtr to = get_this_node();
+                NodePtr from = get_node_from_address(address);
+                from->last_message_recived = get_time();
             
-            return create_message(to, from, type, payload);
+                return create_message(to, from, type, payload);
+            }
         }
-        else
-        {
-            return std::tr1::shared_ptr<Message>();
-        }
+        return shared_ptr<Message>();
     }
 
 //------------------------------------------------------------------------------    
@@ -278,18 +344,21 @@ namespace spdr
         shared_ptr<ConnectMessage> msg = dynamic_pointer_cast<ConnectMessage>(m);
         ASSERT(msg);
         
-        if (protocol_id == msg->get_protocol_id())
+        shared_ptr<Node> from = msg->get_from();
+        string user = msg->get_user();
+        string pass = msg->get_pass();
+        
+        if (auth_func(from, user, pass))
         {        
-            shared_ptr<Node> from = msg->get_from();
             from->set_state(Node::CONNECTED);
+            from->user_name = user;
             node_connected(from);
-            nodes.add(from);
+            add_node(from);
                        
             send(from, shared_ptr<Message>(new AcceptMessage));
         }
         else
         {
-            shared_ptr<Node> from = msg->get_from();
             send(from, shared_ptr<Message>(new RejectMessage));
         }
     }
@@ -319,10 +388,30 @@ namespace spdr
         remove_node(from);
     }
 
+//------------------------------------------------------------------------------        
+    vector<shared_ptr<Node> > get_timeout_nodes(const vector<shared_ptr<Node> >& nodes)
+    {
+        vector<shared_ptr<Node> > result;
+        
+        unsigned int now = get_time();
+        
+        for (unsigned int i = 0; i < nodes.size(); i++)
+        {
+            if (now - nodes[i]->get_last_message_recived() > 500)
+            {
+                result.push_back(nodes[i]);
+            }
+        }
+        
+        return result;
+    }
+
 //------------------------------------------------------------------------------    
     void Network::check_node_timeout()
     {
-        std::vector<NodePtr> t_nodes = nodes.get_timout_nodes();
+        Lock<Mutex> lock(nodes_mutex);
+                
+        std::vector<NodePtr> t_nodes = get_timeout_nodes(nodes);
         for (unsigned int i = 0; i < t_nodes.size(); i++)
         {
             t_nodes[i]->set_state(Node::TIMEOUT);
@@ -331,16 +420,29 @@ namespace spdr
         }
     }
     
-//------------------------------------------------------------------------------
-    bool needs_keep_alive(NodePtr node)
+//------------------------------------------------------------------------------        
+    vector<shared_ptr<Node> > get_keep_alive_nodes(const vector<shared_ptr<Node> >& nodes)
     {
-        return (get_time() - node->get_last_message_sent()) > 250;
+        vector<shared_ptr<Node> > result;        
+        unsigned int now = get_time();
+        
+        for (unsigned int i = 0; i < nodes.size(); i++)
+        {
+            if (now - nodes[i]->get_last_message_recived() > 250)
+            {
+                result.push_back(nodes[i]);
+            }
+        }
+        
+        return result;
     }
     
 //------------------------------------------------------------------------------    
     void Network::handle_keep_alive()
     {
-        std::vector<NodePtr> ka_nodes = nodes.get_nodes(needs_keep_alive);
+        Lock<Mutex> lock(nodes_mutex);
+        
+        vector<shared_ptr<Node> > ka_nodes = get_keep_alive_nodes(nodes);
         for (unsigned int i = 0; i < ka_nodes.size(); i++)
         {
             shared_ptr<Message> ka(new KeepAliveMessage);

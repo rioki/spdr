@@ -20,6 +20,12 @@ namespace spdr
         return address;
     }
 
+//------------------------------------------------------------------------------    
+    const std::string& Node::get_user_name() const
+    {
+        return user_name;
+    }
+
 //------------------------------------------------------------------------------        
     unsigned int Node::get_last_message_recived() const
     {

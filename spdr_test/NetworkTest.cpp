@@ -9,6 +9,7 @@
 #include <sstream>
 
 #include "Network.h"
+#include "Tracker.h"
 
 using namespace std;
 using namespace std::tr1;
@@ -17,77 +18,7 @@ using namespace musli;
 
 SUITE(Network)
 {
-    #define TEST_PROTOCOLL_ID 132465
-    
-//------------------------------------------------------------------------------
-    class Tracker
-    {
-    public:
-        
-        Tracker(spdr::Network& network)        
-        {
-            network.node_connected.connect(sigc::mem_fun(this, &Tracker::track_node_connected));
-            network.node_timeout.connect(sigc::mem_fun(this, &Tracker::track_node_timeout));
-            network.node_disconnected.connect(sigc::mem_fun(this, &Tracker::track_node_disconnected));
-            network.message_recived.connect(sigc::mem_fun(this, &Tracker::track_message_recived));
-        }
-        
-        void track_node_connected(spdr::NodePtr node)
-        {
-            transcript << "Node Connected: " << node->get_state() << std::endl;
-            connection_condition.signal();
-        }
-        
-        void track_node_timeout(spdr::NodePtr node)
-        {
-            transcript << "Node Timeout: " << node->get_state() << std::endl;
-            connection_condition.signal();
-            message_condition.signal(); // signal this too, since this may be 
-            // an error on the line...
-        }
-        
-        void track_node_disconnected(spdr::NodePtr node)
-        {
-            transcript << "Node Disconnect: " << node->get_state() << std::endl;
-            connection_condition.signal();
-            message_condition.signal(); // signal this too, since this may be 
-            // an error on the line...
-        }
-        
-        void track_message_recived(shared_ptr<Message> msg)
-        {
-            transcript << "Message Recived: " << msg->get_type() << std::endl;
-            last_message = msg;
-            message_condition.signal();
-        }
-        
-        void wait_connection()
-        {
-            connection_condition.wait();
-        }
-        
-        void wait_message()
-        {
-            message_condition.wait();
-        }
-        
-        std::string get_tanscript() const
-        {
-            return transcript.str();
-        }
-        
-        shared_ptr<Message> get_last_message() const
-        {
-            return last_message;
-        }
-        
-    private:        
-        c9y::Condition connection_condition;
-        c9y::Condition message_condition;
-        
-        std::stringstream transcript;
-        shared_ptr<Message> last_message;
-    };
+    #define TEST_PROTOCOLL_ID 132465    
     
 //------------------------------------------------------------------------------
     TEST(create_client_style_network)
@@ -149,11 +80,10 @@ SUITE(Network)
         spdr::Network client(TEST_PROTOCOLL_ID+1);
         Tracker client_tracker(client);
         
-        client.connect(spdr::Address(127,0,0,1, 1343));            
+        shared_ptr<Node> node = client.connect(spdr::Address(127,0,0,1, 1343));            
         client_tracker.wait_connection();
         
-        std::string ref = "Node Disconnect: DISCONNECTED\n";
-        CHECK_EQUAL(ref, client_tracker.get_tanscript());        
+        CHECK_EQUAL(Node::TIMEOUT, node->get_state());       
     }
 //------------------------------------------------------------------------------
     class TestMessage : public Message

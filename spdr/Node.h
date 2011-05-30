@@ -6,6 +6,7 @@
 
 #include <iosfwd>
 #include <tr1/memory>
+#include <string>
 
 #include "Address.h"
 
@@ -36,6 +37,8 @@ namespace spdr
          **/
         const Address& get_address() const;
         
+        const std::string& get_user_name() const;
+        
         /**
          * Get the time of the last message. 
          **/
@@ -46,6 +49,7 @@ namespace spdr
     private:
         State state;
         Address address;
+        std::string user_name;
         unsigned int last_message_recived;
         unsigned int last_message_sent;
         
