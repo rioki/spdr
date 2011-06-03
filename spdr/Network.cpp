@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <iostream>
+#include <sstream>
 
 #include <sanity/trace.h>
 #include <sanity/check.h>
@@ -28,6 +29,15 @@ using namespace c9y;
 
 namespace spdr
 {    
+//------------------------------------------------------------------------------
+    template <typename Type>
+    std::string str(Type value)
+    {
+        std::stringstream buff;
+        buff << value;
+        return buff.str();
+    }
+    
 //------------------------------------------------------------------------------
     unsigned int get_time()
     {
@@ -99,6 +109,8 @@ namespace spdr
 //------------------------------------------------------------------------------    
     NodePtr Network::connect(const Address& address, const std::string& user, const std::string& pass)
     {
+        TRACE_INFO("Connecting to " + str(address) + " with username " + user + ".");
+        
         NodePtr node = create_node(address);
         node->last_message_recived = get_time();
         node->last_message_sent = get_time();
@@ -124,6 +136,7 @@ namespace spdr
     void Network::send(std::tr1::shared_ptr<Node> node, std::tr1::shared_ptr<Message> message)
     {
         CHECK_ARGUMENT(message);
+        TRACE_DEBUG("Enquing message of type " + str(message->get_type()) + ".");
         
         message->set_to(node);
         message->set_from(get_this_node());
@@ -253,6 +266,7 @@ namespace spdr
     {
         CHECK_ARGUMENT(msg);
         CHECK_ARGUMENT(msg->get_to());
+        TRACE_DEBUG("Sending message of type " + str(msg->get_type()) + " to " + str(msg->get_to()->get_address()) + ".");
                 
         Address adr = msg->get_to()->get_address();
         
@@ -286,7 +300,9 @@ namespace spdr
                 NodePtr to = get_this_node();
                 NodePtr from = get_node_from_address(address);
                 from->last_message_recived = get_time();
-            
+                
+                TRACE_DEBUG("Recived message of type " + str(type) + " form " + str(from->get_address()) + ".");
+                
                 return create_message(to, from, type, payload);
             }
         }
@@ -350,15 +366,18 @@ namespace spdr
         
         if (auth_func(from, user, pass))
         {        
+            TRACE_INFO("Connection initiated by node " + str(from->get_address()) + ".");
             from->set_state(Node::CONNECTED);
-            from->user_name = user;
+            from->user_name = user;            
             node_connected(from);
             add_node(from);
+                        
                        
             send(from, shared_ptr<Message>(new AcceptMessage));
         }
         else
         {
+            TRACE_INFO("Connection rejected to node " + str(from->get_address()) + ".");
             send(from, shared_ptr<Message>(new RejectMessage));
         }
     }
@@ -370,6 +389,8 @@ namespace spdr
         ASSERT(msg);
         
         shared_ptr<Node> from = msg->get_from();
+        TRACE_INFO("Connection initiated to node " + str(from->get_address()) + ".");
+        
         from->set_state(Node::CONNECTED);
         node_connected(from);
     }
@@ -383,6 +404,8 @@ namespace spdr
         ASSERT(msg);
         
         NodePtr from = msg->get_from();
+        TRACE_INFO("Connection rejected by node " + str(from->get_address()) + ".");
+        
         from->set_state(Node::DISCONNECTED);
         node_disconnected(from);
         remove_node(from);
@@ -397,7 +420,7 @@ namespace spdr
         
         for (unsigned int i = 0; i < nodes.size(); i++)
         {
-            if (now - nodes[i]->get_last_message_recived() > 500)
+            if ((now - nodes[i]->get_last_message_recived()) > 500)
             {
                 result.push_back(nodes[i]);
             }
@@ -414,6 +437,7 @@ namespace spdr
         std::vector<NodePtr> t_nodes = get_timeout_nodes(nodes);
         for (unsigned int i = 0; i < t_nodes.size(); i++)
         {
+            TRACE_INFO("Connection timedout to node " + str(t_nodes[i]->get_address()) + ".");
             t_nodes[i]->set_state(Node::TIMEOUT);
             node_timeout(t_nodes[i]);
             remove_node(t_nodes[i]);
@@ -428,7 +452,7 @@ namespace spdr
         
         for (unsigned int i = 0; i < nodes.size(); i++)
         {
-            if (now - nodes[i]->get_last_message_recived() > 250)
+            if ((now - nodes[i]->get_last_message_sent()) > 250)
             {
                 result.push_back(nodes[i]);
             }
@@ -445,6 +469,7 @@ namespace spdr
         vector<shared_ptr<Node> > ka_nodes = get_keep_alive_nodes(nodes);
         for (unsigned int i = 0; i < ka_nodes.size(); i++)
         {
+            TRACE_DEBUG("Sending keep alive to node " + str(ka_nodes[i]->get_address()) + ".");
             shared_ptr<Message> ka(new KeepAliveMessage);
             ka->set_to(ka_nodes[i]);
             ka->set_from(this_node);
