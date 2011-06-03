@@ -101,7 +101,7 @@ namespace spdr
         
         if (a.get_port() != 0)
         {
-            os << a.get_port();
+            os << ":" << a.get_port();
         }
         
         return os;
