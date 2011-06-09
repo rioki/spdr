@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<CodeLite_Project Name="spdr_test" InternalType="Console">
+<CodeLite_Project Name="spdr" InternalType="Library">
   <Plugins>
     <Plugin Name="qmake">
       <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
@@ -8,19 +8,46 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="Source Files">
-    <File Name="main.cpp"/>
-    <File Name="UdpSocketTest.cpp"/>
-    <File Name="AddressTest.cpp"/>
-    <File Name="NetworkTest.cpp"/>
-    <File Name="AuthTest.cpp"/>
+    <File Name="src/UdpSocket.cpp"/>
+    <File Name="src/WsaSentry.cpp"/>
+    <File Name="src/Address.cpp"/>
+    <File Name="src/Network.cpp"/>
+    <File Name="src/Node.cpp"/>
+    <File Name="src/Message.cpp"/>
+    <File Name="src/MessageQueue.cpp"/>
+    <File Name="src/MessageFactory.cpp"/>
+    <File Name="src/ConnectMessage.cpp"/>
+    <File Name="src/AcceptMessage.cpp"/>
+    <File Name="src/KeepAliveMessage.cpp"/>
+    <File Name="src/RejectMessage.cpp"/>
   </VirtualDirectory>
-  <Dependencies Name="Debug">
-    <Project Name="spdr"/>
-  </Dependencies>
+  <VirtualDirectory Name="Header Files">
+    <File Name="include/spdr/UdpSocket.h"/>
+    <File Name="include/spdr/Address.h"/>
+    <File Name="include/spdr/Network.h"/>
+    <File Name="include/spdr/Node.h"/>
+    <File Name="include/spdr/Message.h"/>
+    <File Name="include/spdr/InternalMessageType.h"/>
+    <File Name="include/spdr/WsaSentry.h"/>
+    <File Name="include/spdr/MessageQueue.h"/>
+    <File Name="include/spdr/spdr.h"/>
+    <File Name="include/spdr/MessageFactory.h"/>
+    <File Name="include/spdr/ConnectMessage.h"/>
+    <File Name="include/spdr/AcceptMessage.h"/>
+    <File Name="include/spdr/KeepAliveMessage.h"/>
+    <File Name="include/spdr/RejectMessage.h"/>
+  </VirtualDirectory>
   <Dependencies Name="Release">
-    <Project Name="spdr"/>
+    <Project Name="c9y"/>
+    <Project Name="musli"/>
+    <Project Name="sanity"/>
   </Dependencies>
-  <Settings Type="Executable">
+  <Dependencies Name="Debug">
+    <Project Name="c9y"/>
+    <Project Name="musli"/>
+    <Project Name="sanity"/>
+  </Dependencies>
+  <Settings Type="Dynamic Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="">
         <IncludePath Value="."/>
@@ -30,40 +57,34 @@
       </Linker>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
-    <Configuration Name="Debug" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+    <Configuration Name="Debug" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Dynamic Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-g" C_Options="-g" Required="yes" PreCompiledHeader="">
-        <IncludePath Value="../spdr"/>
+        <IncludePath Value="include/spdr"/>
         <IncludePath Value="$(SIGC_DIR)/include"/>
         <IncludePath Value="$(C9Y_DIR)/include"/>
         <IncludePath Value="$(MUSLI_DIR)/include"/>
         <IncludePath Value="$(SANITY_DIR)/include"/>
-        <IncludePath Value="$(UNIT_TEST_DIR)/include"/>
       </Compiler>
       <Linker Options="" Required="yes">
-        <LibraryPath Value="../spdr/$(ConfigurationName)"/>
         <LibraryPath Value="$(SIGC_DIR)/lib"/>
-        <LibraryPath Value="$(C9Y_DIR)/lib"/>
-        <LibraryPath Value="$(MUSLI_DIR)/lib"/>
-        <LibraryPath Value="$(SANITY_DIR)/lib"/>
-        <LibraryPath Value="$(UNIT_TEST_DIR)/lib"/>
-        <Library Value="spdr"/>
+        <LibraryPath Value="$(C9Y_DIR)/$(ConfigurationName)"/>
+        <LibraryPath Value="$(MUSLI_DIR)/$(ConfigurationName)"/>
+        <LibraryPath Value="$(SANITY_DIR)/$(ConfigurationName)"/>
+        <Library Value="wsock32"/>
         <Library Value="sigc++"/>
         <Library Value="c9y"/>
         <Library Value="musli"/>
         <Library Value="sanity"/>
-        <Library Value="UnitTest++"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes"/>
+      <General OutputFile="$(IntermediateDirectory)/$(ProjectName).dll" IntermediateDirectory="./Debug" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;"/>
       <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="">
         <PostConnectCommands/>
         <StartupCommands/>
       </Debugger>
       <PreBuild/>
-      <PostBuild>
-        <Command Enabled="yes">run_test $(ConfigurationName)</Command>
-      </PostBuild>
+      <PostBuild/>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
         <CleanCommand/>
@@ -71,7 +92,7 @@
         <PreprocessFileCommand/>
         <SingleFileCommand/>
         <MakefileGenerationCommand/>
-        <ThirdPartyToolName>None</ThirdPartyToolName>
+        <ThirdPartyToolName/>
         <WorkingDirectory/>
       </CustomBuild>
       <AdditionalRules>
@@ -79,40 +100,34 @@
         <CustomPreBuild/>
       </AdditionalRules>
     </Configuration>
-    <Configuration Name="Release" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+    <Configuration Name="Release" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Dynamic Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="" C_Options="" Required="yes" PreCompiledHeader="">
-        <IncludePath Value="../spdr"/>
+        <IncludePath Value="include/spdr"/>
         <IncludePath Value="$(SIGC_DIR)/include"/>
         <IncludePath Value="$(C9Y_DIR)/include"/>
         <IncludePath Value="$(MUSLI_DIR)/include"/>
         <IncludePath Value="$(SANITY_DIR)/include"/>
-        <IncludePath Value="$(UNIT_TEST_DIR)/include"/>
       </Compiler>
       <Linker Options="-O2" Required="yes">
-        <LibraryPath Value="../spdr/$(ConfigurationName"/>
         <LibraryPath Value="$(SIGC_DIR)/lib"/>
-        <LibraryPath Value="$(C9Y_DIR)/lib"/>
-        <LibraryPath Value="$(MUSLI_DIR)/lib"/>
-        <LibraryPath Value="$(SANITY_DIR)/lib"/>
-        <LibraryPath Value="$(UNIT_TEST_DIR)/lib"/>
-        <Library Value="spdr"/>
+        <LibraryPath Value="$(C9Y_DIR)/$(ConfigurationName)"/>
+        <LibraryPath Value="$(MUSLI_DIR)/$(ConfigurationName)"/>
+        <LibraryPath Value="$(SANITY_DIR)/$(ConfigurationName)"/>
+        <Library Value="wsock32"/>
         <Library Value="sigc++"/>
         <Library Value="c9y"/>
         <Library Value="musli"/>
         <Library Value="sanity"/>
-        <Library Value="UnitTest++"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Release" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes"/>
+      <General OutputFile="$(IntermediateDirectory)/$(ProjectName).dll" IntermediateDirectory="./Release" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;"/>
       <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="">
         <PostConnectCommands/>
         <StartupCommands/>
       </Debugger>
       <PreBuild/>
-      <PostBuild>
-        <Command Enabled="yes">run_test $(ConfigurationName)</Command>
-      </PostBuild>
+      <PostBuild/>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
         <CleanCommand/>
@@ -120,7 +135,7 @@
         <PreprocessFileCommand/>
         <SingleFileCommand/>
         <MakefileGenerationCommand/>
-        <ThirdPartyToolName>None</ThirdPartyToolName>
+        <ThirdPartyToolName/>
         <WorkingDirectory/>
       </CustomBuild>
       <AdditionalRules>
@@ -129,7 +144,4 @@
       </AdditionalRules>
     </Configuration>
   </Settings>
-  <VirtualDirectory Name="Header Files">
-    <File Name="Tracker.h"/>
-  </VirtualDirectory>
 </CodeLite_Project>
