@@ -42,11 +42,6 @@
     <Project Name="musli"/>
     <Project Name="sanity"/>
   </Dependencies>
-  <Dependencies Name="Debug">
-    <Project Name="c9y"/>
-    <Project Name="musli"/>
-    <Project Name="sanity"/>
-  </Dependencies>
   <Settings Type="Dynamic Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="">
@@ -144,4 +139,9 @@
       </AdditionalRules>
     </Configuration>
   </Settings>
+  <Dependencies Name="Debug">
+    <Project Name="c9y"/>
+    <Project Name="musli"/>
+    <Project Name="sanity"/>
+  </Dependencies>
 </CodeLite_Project>

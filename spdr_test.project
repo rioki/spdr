@@ -20,9 +20,6 @@
   <VirtualDirectory Name="Header Files">
     <File Name="Tracker.h"/>
   </VirtualDirectory>
-  <Dependencies Name="Debug">
-    <Project Name="spdr"/>
-  </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="">
@@ -132,4 +129,7 @@
       </AdditionalRules>
     </Configuration>
   </Settings>
+  <Dependencies Name="Debug">
+    <Project Name="spdr"/>
+  </Dependencies>
 </CodeLite_Project>
