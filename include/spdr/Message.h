@@ -1,13 +1,10 @@
-// spdr - easy networking
+// Iced Blue
 // Copyright 2011 Sean Farrell
 
-#ifndef _SPDR_MESSAGE_H_
-#define _SPDR_MESSAGE_H_
+#ifndef _IBNET_MESSAGE_H_
+#define _IBNET_MESSAGE_H_
 
-#include <tr1/memory>
-#include <vector>
-
-#include "Node.h"
+#include <iosfwd>
 
 namespace spdr
 {
@@ -17,62 +14,47 @@ namespace spdr
     class Message
     {
     public:
-        /**
-         * Constructor 
-         **/
+    
         Message();
         
-        /**
-         * Denstructor 
-         **/
         virtual ~Message();
         
-        /**
-         * Make a copy of this message. 
-         **/
-        virtual Message* clone() const = 0;
+        virtual unsigned int get_id() const = 0;
         
-        /**
-         * Get the message type id. 
-         **/
-        virtual unsigned int get_type() const = 0;
+        virtual void pack(std::ostream& os) const = 0;
         
-        /**
-         * Set the message's recipient. 
-         **/
-        void set_to(std::tr1::shared_ptr<Node> value);
-        
-        /**
-         * Get the message's recipient. 
-         **/
-        std::tr1::shared_ptr<Node> get_to() const;
-        
-        /**
-         * Set the message's sender. 
-         **/
-        void set_from(std::tr1::shared_ptr<Node> value);
-        
-        /**
-         * Get the message's sender. 
-         **/
-        std::tr1::shared_ptr<Node> get_from() const;        
-
-        /**
-         * Encode the message to a memory buffer; 
-         **/
-        virtual std::vector<char> encode() const = 0;
+        virtual void unpack(std::istream& is) = 0;
+    };
     
-        /**
-         * Decode the message from a memory buffer; 
-         **/
-        virtual void decode(const std::vector<char>& paylod) = 0;
-
-    private:        
-        std::tr1::shared_ptr<Node> to;
-        std::tr1::shared_ptr<Node> from;
+    void pack(std::ostream& os, bool value);
+    void pack(std::ostream& os, char value);
+    void pack(std::ostream& os, unsigned char value);
+    void pack(std::ostream& os, short value);
+    void pack(std::ostream& os, unsigned short value);
+    void pack(std::ostream& os, int value);
+    void pack(std::ostream& os, unsigned int value);
+    void pack(std::ostream& os, long value);
+    void pack(std::ostream& os, unsigned long value);
+    void pack(std::ostream& os, long long value);
+    void pack(std::ostream& os, unsigned long long value);    
+    void pack(std::ostream& os, float value);
+    void pack(std::ostream& os, double value);
+    void pack(std::ostream& os, const std::string& value);    
     
-    friend class Network;
-    };    
+    void unpack(std::istream& is, bool& value);
+    void unpack(std::istream& is, char& value);
+    void unpack(std::istream& is, unsigned char& value);
+    void unpack(std::istream& is, short& value);
+    void unpack(std::istream& is, unsigned short& value);
+    void unpack(std::istream& is, int& value);
+    void unpack(std::istream& is, unsigned int& value);
+    void unpack(std::istream& is, long& value);
+    void unpack(std::istream& is, unsigned long& value);
+    void unpack(std::istream& is, long long& value);
+    void unpack(std::istream& is, unsigned long long& value);    
+    void unpack(std::istream& is, float& value);
+    void unpack(std::istream& is, double& value);
+    void unpack(std::istream& is, std::string& value);
 }
 
 #endif

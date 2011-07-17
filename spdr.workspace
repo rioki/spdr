@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeLite_Workspace Name="spdr" Database="./spdr.tags">
+  <Project Name="spdr" Path="spdr.project" Active="No"/>
+  <Project Name="spdr_test" Path="spdr_test.project" Active="Yes"/>
+  <BuildMatrix>
+    <WorkspaceConfiguration Name="Debug" Selected="no">
+      <Project Name="spdr" ConfigName="Debug"/>
+      <Project Name="spdr_test" ConfigName="Debug"/>
+    </WorkspaceConfiguration>
+    <WorkspaceConfiguration Name="Release" Selected="yes">
+      <Project Name="spdr" ConfigName="Release"/>
+      <Project Name="spdr_test" ConfigName="Release"/>
+    </WorkspaceConfiguration>
+  </BuildMatrix>
+</CodeLite_Workspace>

@@ -12,36 +12,27 @@
     <File Name="src/WsaSentry.cpp"/>
     <File Name="src/Address.cpp"/>
     <File Name="src/Network.cpp"/>
-    <File Name="src/Node.cpp"/>
     <File Name="src/Message.cpp"/>
-    <File Name="src/MessageQueue.cpp"/>
-    <File Name="src/MessageFactory.cpp"/>
-    <File Name="src/ConnectMessage.cpp"/>
-    <File Name="src/AcceptMessage.cpp"/>
     <File Name="src/KeepAliveMessage.cpp"/>
-    <File Name="src/RejectMessage.cpp"/>
+    <File Name="src/PeerInfo.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Header Files">
     <File Name="include/spdr/UdpSocket.h"/>
     <File Name="include/spdr/Address.h"/>
     <File Name="include/spdr/Network.h"/>
-    <File Name="include/spdr/Node.h"/>
     <File Name="include/spdr/Message.h"/>
-    <File Name="include/spdr/InternalMessageType.h"/>
     <File Name="include/spdr/WsaSentry.h"/>
-    <File Name="include/spdr/MessageQueue.h"/>
     <File Name="include/spdr/spdr.h"/>
-    <File Name="include/spdr/MessageFactory.h"/>
-    <File Name="include/spdr/ConnectMessage.h"/>
-    <File Name="include/spdr/AcceptMessage.h"/>
     <File Name="include/spdr/KeepAliveMessage.h"/>
-    <File Name="include/spdr/RejectMessage.h"/>
+    <File Name="include/spdr/PeerInfo.h"/>
+    <File Name="include/spdr/SystemMessageId.h"/>
   </VirtualDirectory>
   <Dependencies Name="Release">
     <Project Name="c9y"/>
     <Project Name="musli"/>
     <Project Name="sanity"/>
   </Dependencies>
+  <Dependencies Name="Debug"/>
   <Settings Type="Dynamic Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="">
@@ -57,18 +48,15 @@
         <IncludePath Value="include/spdr"/>
         <IncludePath Value="$(SIGC_DIR)/include"/>
         <IncludePath Value="$(C9Y_DIR)/include"/>
-        <IncludePath Value="$(MUSLI_DIR)/include"/>
         <IncludePath Value="$(SANITY_DIR)/include"/>
       </Compiler>
       <Linker Options="" Required="yes">
         <LibraryPath Value="$(SIGC_DIR)/lib"/>
-        <LibraryPath Value="$(C9Y_DIR)/$(ConfigurationName)"/>
-        <LibraryPath Value="$(MUSLI_DIR)/$(ConfigurationName)"/>
-        <LibraryPath Value="$(SANITY_DIR)/$(ConfigurationName)"/>
+        <LibraryPath Value="$(C9Y_DIR)/lib"/>
+        <LibraryPath Value="$(SANITY_DIR)/lib"/>
         <Library Value="wsock32"/>
         <Library Value="sigc++"/>
         <Library Value="c9y"/>
-        <Library Value="musli"/>
         <Library Value="sanity"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
@@ -100,18 +88,15 @@
         <IncludePath Value="include/spdr"/>
         <IncludePath Value="$(SIGC_DIR)/include"/>
         <IncludePath Value="$(C9Y_DIR)/include"/>
-        <IncludePath Value="$(MUSLI_DIR)/include"/>
         <IncludePath Value="$(SANITY_DIR)/include"/>
       </Compiler>
       <Linker Options="-O2" Required="yes">
         <LibraryPath Value="$(SIGC_DIR)/lib"/>
-        <LibraryPath Value="$(C9Y_DIR)/$(ConfigurationName)"/>
-        <LibraryPath Value="$(MUSLI_DIR)/$(ConfigurationName)"/>
-        <LibraryPath Value="$(SANITY_DIR)/$(ConfigurationName)"/>
+        <LibraryPath Value="$(C9Y_DIR)/lib"/>
+        <LibraryPath Value="$(SANITY_DIR)/lib"/>
         <Library Value="wsock32"/>
         <Library Value="sigc++"/>
         <Library Value="c9y"/>
-        <Library Value="musli"/>
         <Library Value="sanity"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
@@ -139,9 +124,4 @@
       </AdditionalRules>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug">
-    <Project Name="c9y"/>
-    <Project Name="musli"/>
-    <Project Name="sanity"/>
-  </Dependencies>
 </CodeLite_Project>

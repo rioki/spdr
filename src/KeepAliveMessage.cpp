@@ -1,38 +1,22 @@
-// spdr - easy networking
+// Iced Blue
 // Copyright 2011 Sean Farrell
 
 #include "KeepAliveMessage.h"
 
-#include "InternalMessageType.h"
+#include "SystemMessageId.h"
 
 namespace spdr
 {
-//------------------------------------------------------------------------------
-    KeepAliveMessage::KeepAliveMessage() {}    
+    KeepAliveMessage::KeepAliveMessage() {}
     
-//------------------------------------------------------------------------------
-    KeepAliveMessage::KeepAliveMessage(unsigned int pi) {}
-
-//------------------------------------------------------------------------------    
-    KeepAliveMessage* KeepAliveMessage::clone() const
+    KeepAliveMessage::~KeepAliveMessage() {}
+    
+    unsigned int KeepAliveMessage::get_id() const
     {
-        return new KeepAliveMessage(*this);
+        return 0;
     }
-
-//------------------------------------------------------------------------------
-    unsigned int KeepAliveMessage::get_type() const
-    {
-        return KEEP_ALIVE_MESSAGE;
-    }
-
-//------------------------------------------------------------------------------
-    std::vector<char> KeepAliveMessage::encode() const
-    {
-        return std::vector<char>();
-    }
-
-//------------------------------------------------------------------------------
-    void KeepAliveMessage::decode(const std::vector<char>& paylod)
-    {
-    }
+    
+    void KeepAliveMessage::pack(std::ostream& os) const {}
+    
+    void KeepAliveMessage::unpack(std::istream& is) {}
 }

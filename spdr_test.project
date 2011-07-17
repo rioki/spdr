@@ -12,14 +12,14 @@
     <File Name="test/UdpSocketTest.cpp"/>
     <File Name="test/AddressTest.cpp"/>
     <File Name="test/NetworkTest.cpp"/>
-    <File Name="test/AuthTest.cpp"/>
   </VirtualDirectory>
   <Dependencies Name="Release">
     <Project Name="spdr"/>
   </Dependencies>
-  <VirtualDirectory Name="Header Files">
-    <File Name="Tracker.h"/>
-  </VirtualDirectory>
+  <VirtualDirectory Name="Header Files"/>
+  <Dependencies Name="Debug">
+    <Project Name="spdr"/>
+  </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="">
@@ -35,21 +35,18 @@
         <IncludePath Value="include/spdr"/>
         <IncludePath Value="$(SIGC_DIR)/include"/>
         <IncludePath Value="$(C9Y_DIR)/include"/>
-        <IncludePath Value="$(MUSLI_DIR)/include"/>
         <IncludePath Value="$(SANITY_DIR)/include"/>
         <IncludePath Value="$(UNIT_TEST_DIR)/include"/>
       </Compiler>
       <Linker Options="" Required="yes">
         <LibraryPath Value="$(ConfigurationName)"/>
         <LibraryPath Value="$(SIGC_DIR)/lib"/>
-        <LibraryPath Value="$(C9Y_DIR)/$(ConfigurationName)"/>
-        <LibraryPath Value="$(MUSLI_DIR)/$(ConfigurationName)"/>
-        <LibraryPath Value="$(SANITY_DIR)/$(ConfigurationName)"/>
+        <LibraryPath Value="$(C9Y_DIR)/lib"/>
+        <LibraryPath Value="$(SANITY_DIR)/lib"/>
         <LibraryPath Value="$(UNIT_TEST_DIR)/lib"/>
         <Library Value="spdr"/>
         <Library Value="sigc++"/>
         <Library Value="c9y"/>
-        <Library Value="musli"/>
         <Library Value="sanity"/>
         <Library Value="UnitTest++"/>
       </Linker>
@@ -84,21 +81,18 @@
         <IncludePath Value="include/spdr"/>
         <IncludePath Value="$(SIGC_DIR)/include"/>
         <IncludePath Value="$(C9Y_DIR)/include"/>
-        <IncludePath Value="$(MUSLI_DIR)/include"/>
         <IncludePath Value="$(SANITY_DIR)/include"/>
         <IncludePath Value="$(UNIT_TEST_DIR)/include"/>
       </Compiler>
       <Linker Options="-O2" Required="yes">
         <LibraryPath Value="$(ConfigurationName)"/>
         <LibraryPath Value="$(SIGC_DIR)/lib"/>
-        <LibraryPath Value="$(C9Y_DIR)/$(ConfigurationName)"/>
-        <LibraryPath Value="$(MUSLI_DIR)/$(ConfigurationName)"/>
-        <LibraryPath Value="$(SANITY_DIR)/$(ConfigurationName)"/>
+        <LibraryPath Value="$(C9Y_DIR)/lib"/>
+        <LibraryPath Value="$(SANITY_DIR)/lib"/>
         <LibraryPath Value="$(UNIT_TEST_DIR)/lib"/>
         <Library Value="spdr"/>
         <Library Value="sigc++"/>
         <Library Value="c9y"/>
-        <Library Value="musli"/>
         <Library Value="sanity"/>
         <Library Value="UnitTest++"/>
       </Linker>
@@ -129,7 +123,4 @@
       </AdditionalRules>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug">
-    <Project Name="spdr"/>
-  </Dependencies>
 </CodeLite_Project>

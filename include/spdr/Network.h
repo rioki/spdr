@@ -1,136 +1,128 @@
-// spdr - easy networking
+// Iced Blue
 // Copyright 2011 Sean Farrell
 
-#ifndef _SPDR_NETWORK_H_
-#define _SPDR_NETWORK_H_
+#ifndef _IBNET_NODE_H_
+#define _IBNET_NODE_H_
 
-#include <queue>
-#include <string>
 #include <sigc++/signal.h>
+#include <queue>
+#include <list>
+#include <map>
+
 #include <c9y/Thread.h>
 #include <c9y/Mutex.h>
-#include <c9y/Condition.h>
+#include <c9y/Lock.h>
 
-#include "Node.h"
 #include "Address.h"
 #include "UdpSocket.h"
-#include "Message.h"
 
-#include "MessageQueue.h"
-#include "MessageFactory.h"
+#include "PeerInfo.h"
+#include "Message.h"
 
 namespace spdr
 {
+    typedef Message* (*MessageCreator)();
+    
+    template <typename Type>
+    struct MessageFactory
+    {
+        static Message* create()
+        {
+            return new Type;
+        }
+    };
+    
+    /**
+     * Network Network
+     **/
     class Network
     {
     public:
     
+        /**
+         * Create a client network node.
+         **/
         Network(unsigned int protocol_id);
         
-        Network(unsigned int protocol_id, unsigned short connect_port);
+        /**
+         * Create a server network node.
+         **/
+        Network(unsigned int protocol_id, unsigned int port);
         
-        Network(unsigned int protocol_id, unsigned short connect_port, sigc::slot<bool, std::tr1::shared_ptr<Node>, std::string, std::string> auth_func);
-        
+        /**
+         * Destroy 
+         **/
         ~Network();
         
+        /**
+         * Get the protocoll id.
+         **/
         unsigned int get_protocol_id() const;
         
-        unsigned short get_connect_port() const;
-        
-        bool accepts_connections() const;
-        
-        std::tr1::shared_ptr<Node> get_this_node() const;
+        /**
+         * Connect to a peer.
+         **/
+        PeerInfo connect(Address address);
+
+        /**
+         * Get the signal that is emitted when a connection is established.
+         **/
+        sigc::signal<void, PeerInfo>& get_connect_signal();
         
         /**
-         * Signal that is emitted when a node is connected.
+         * Get the signal that is emitted when a connection is terminated.
          **/
-        sigc::signal<void, std::tr1::shared_ptr<Node> > node_connected;
-        
-        /**
-         * Signal that is emitted when a node timesout.
-         **/
-        sigc::signal<void, std::tr1::shared_ptr<Node> > node_timeout;
-        
-        /**
-         * Signal that is emitted when a node was disconnected.
-         **/
-        sigc::signal<void, std::tr1::shared_ptr<Node> > node_disconnected;
-        
-        /**
-         * Initiate connection to an other node. 
-         **/
-        std::tr1::shared_ptr<Node> connect(const Address& address, const std::string& user = "", const std::string& pass = "");
-        
-        /**
-         * Get all the nodes connected to this server.
-         **/
-        std::vector<std::tr1::shared_ptr<Node> > get_nodes() const;
-        
-        void set_auth_function(sigc::slot<bool, std::tr1::shared_ptr<Node>, std::string, std::string> func);
-        
-        /**
-         * Signal that is emitted when a message is recived. 
-         **/
-        sigc::signal<void, std::tr1::shared_ptr<Message> > message_recived;
+        sigc::signal<void, PeerInfo>& get_disconnect_signal();
         
         template <typename Type>
-        void register_message();
+        void register_message(unsigned int id)
+        {
+            c9y::Lock<c9y::Mutex> lock(message_map_mutex);
+            message_map[id] = &MessageFactory<Type>::create;
+        }
         
         /**
-         * Send a message. 
+         * Send a message.
          **/
-        void send(std::tr1::shared_ptr<Node> node, std::tr1::shared_ptr<Message> message);
+        void send(const PeerInfo& info, Message* message);
+        
+        sigc::signal<void, PeerInfo, Message&>& get_message_signal();
     
     private:
         unsigned int protocol_id;
-        unsigned short connect_port;
-        NodePtr this_node;
-                
-        std::vector<std::tr1::shared_ptr<Node> > nodes;
-        mutable c9y::Mutex nodes_mutex;
-        
         UdpSocket socket;
-        
         bool running;
-        c9y::Thread worker_thread; 
+        c9y::Thread worker;
+
+        std::list<PeerInfo*> connected_nodes;
+        c9y::Mutex connected_nodes_mutex;
         
-        MessageQueue send_queue;        
-        MessageFactory message_factory;       
+        std::queue<std::tr1::tuple<PeerInfo, Message*> > send_queue;
+        c9y::Mutex send_queue_mutex;
         
-        sigc::slot<bool, std::tr1::shared_ptr<Node>, std::string, std::string> auth_func;
+        std::map<unsigned int, MessageCreator> message_map;
+        c9y::Mutex message_map_mutex;
         
-        void init(unsigned short connect_port);
+        sigc::signal<void, PeerInfo> connect_signal;
+        sigc::signal<void, PeerInfo> disconnect_signal;
+        sigc::signal<void, PeerInfo, Message&> message_signal;
         
-        // node handling
-        std::tr1::shared_ptr<Node> create_node(const Address& address);
-        void add_node(std::tr1::shared_ptr<Node> node);
-        void remove_node(std::tr1::shared_ptr<Node> node);
-        std::tr1::shared_ptr<Node> get_node_from_address(const Address& address);
+        void register_system_messages();
         
-        // worker thread
-        void main();        
-        void send_message(std::tr1::shared_ptr<Message> msg);        
-        std::tr1::shared_ptr<Message> recive_message();
-        std::tr1::shared_ptr<Message> create_message(NodePtr to, NodePtr from, unsigned int type, const std::vector<char>& payload);
-        void handle_internal_message(std::tr1::shared_ptr<Message> msg);        
-        void handle_connect(std::tr1::shared_ptr<Message> msg);
-        void handle_connection_accepted(std::tr1::shared_ptr<Message> msg);
-        void handle_connection_rejected(std::tr1::shared_ptr<Message> msg);
+        void worker_main();
         
-        void check_node_timeout();
-        void handle_keep_alive();
+        void do_send();
+        void do_recive();
+        void do_keep_alive();
+        void do_timeout();
+        
+        PeerInfo* get_info(const Address& address);
+        Message* create_message(unsigned int id);
+        void handle_system_message(PeerInfo info, Message& message);
     
         Network(const Network&);
         const Network& operator = (const Network&);
     };
-    
-//------------------------------------------------------------------------------
-    template <typename Type>
-    void Network::register_message()
-    {
-        std::tr1::shared_ptr<Message> message(new Type);
-        message_factory.add(message);
-    }
 }
 
 #endif

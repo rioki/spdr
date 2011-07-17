@@ -25,12 +25,11 @@ SUITE(UdpSocket)
         spdr::UdpSocket socket2(1337);
         
         spdr::Address adr1(127,0,0,1,1337);
-        std::string value = "Hello Network.";
-        std::vector<char> buff1(value.begin(), value.end());
+        std::string buff1 = "Hello Network.";
         socket1.send(adr1, buff1);
         
         spdr::Address adr2;
-        std::vector<char> buff2;    
+        std::string buff2;    
         while (buff2.empty())
         {
             std::tr1::tie(adr2, buff2) = socket2.recive();        
@@ -38,4 +37,15 @@ SUITE(UdpSocket)
         
         CHECK(buff1 == buff2);
     }
+    
+//------------------------------------------------------------------------------    
+    /*TEST(resolve_host_name)
+    {
+        ib::IpAddress address = ib::IpAddress::resolve("localhost", 1337);
+        CHECK_EQUAL(127, address.get_a());
+        CHECK_EQUAL(0, address.get_b());
+        CHECK_EQUAL(0, address.get_c());
+        CHECK_EQUAL(1, address.get_d());
+        CHECK_EQUAL(1337, address.get_port());
+    }*/
 }

@@ -45,7 +45,7 @@ namespace spdr
     }
     
 //------------------------------------------------------------------------------
-    void UdpSocket::send(const Address& address, const std::vector<char>& data)
+    void UdpSocket::send(const Address& address, const std::string& data)
     {
         if (data.size() > get_max_packet_size())
         {
@@ -65,9 +65,9 @@ namespace spdr
     }
     
 //------------------------------------------------------------------------------
-    std::tr1::tuple<Address, std::vector<char> > UdpSocket::recive()
+    std::tr1::tuple<Address, std::string > UdpSocket::recive()
     {
-        std::vector<char> buff(get_max_packet_size());    
+        std::string buff(get_max_packet_size(), 0);    
         sockaddr_in c_adr;
         int c_adr_len = sizeof(sockaddr_in);
         
@@ -75,7 +75,7 @@ namespace spdr
         
         if (received_bytes <= 0)
         {
-            return std::tr1::make_tuple(Address(), std::vector<char>());
+            return std::tr1::make_tuple(Address(), std::string());
         }
         else
         {

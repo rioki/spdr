@@ -1,168 +1,246 @@
-// spdr - easy networking
+// Iced Blue
 // Copyright 2011 Sean Farrell
 
-#include <stdexcept>
 #include <UnitTest++/UnitTest++.h>
+
+#include <sigc++/sigc++.h>
+#include <c9y/Condition.h>
 #include <c9y/utility.h>
-#include <musli/MemoryPacker.h>
-#include <musli/MemoryUnpacker.h>
-#include <sstream>
 
 #include "Network.h"
-#include "Tracker.h"
 
-using namespace std;
-using namespace std::tr1;
-using namespace spdr;
-using namespace musli;
-
-SUITE(Network)
-{
-    #define TEST_PROTOCOLL_ID 132465    
-    
-//------------------------------------------------------------------------------
-    TEST(create_client_style_network)
+SUITE(NodeTest)
+{        
+    TEST(default_constructible)
     {
-        spdr::Network net(TEST_PROTOCOLL_ID);
-        CHECK_EQUAL(TEST_PROTOCOLL_ID, net.get_protocol_id());
-    }  
-
-//------------------------------------------------------------------------------
-    TEST(create_server_style_network)
-    {
-        spdr::Network net(TEST_PROTOCOLL_ID, 1338);        
-        CHECK_EQUAL(TEST_PROTOCOLL_ID, net.get_protocol_id());
-        CHECK_EQUAL(1338, net.get_connect_port());
-    }
-    
-//------------------------------------------------------------------------------
-    TEST(connect)
-    {
-        Network server(TEST_PROTOCOLL_ID, 1340);
-        Tracker server_tracker(server);
-        
-        Network client(TEST_PROTOCOLL_ID);
-        Tracker client_tracker(client);
-        
-        shared_ptr<Node> server_node;
-        server_node = client.connect(spdr::Address(127,0,0,1, 1340));
-        
-        CHECK_EQUAL(Node::CONNECTING, server_node->get_state());
-        
-        client_tracker.wait_connection();
-        
-        CHECK_EQUAL(Node::CONNECTED, server_node->get_state());
-        
-        std::string ref = "Node Connected: CONNECTED\n";
-        CHECK_EQUAL(ref, client_tracker.get_tanscript());
-        CHECK_EQUAL(ref, server_tracker.get_tanscript());
-    }
-    
-//------------------------------------------------------------------------------    
-    TEST(connect_failed)
-    {
-        spdr::Network client(TEST_PROTOCOLL_ID);
-        Tracker client_tracker(client);
-        
-        spdr::NodePtr node = client.connect(spdr::Address(127,0,0,1, 4000));
-        CHECK_EQUAL(spdr::Node::CONNECTING, node->get_state());
-                
-        client_tracker.wait_connection();
-        
-        std::string ref = "Node Timeout: TIMEOUT\n";
-        CHECK_EQUAL(ref, client_tracker.get_tanscript());        
+        spdr::Network network(1);
+        CHECK_EQUAL(1, network.get_protocol_id());
     }
 
-//------------------------------------------------------------------------------    
-    TEST(connection_rejected_on_different_protocoll_id)
+    struct ConnectTimeoutFixture
     {
-        spdr::Network server(TEST_PROTOCOLL_ID, 1343);        
-        spdr::Network client(TEST_PROTOCOLL_ID+1);
-        Tracker client_tracker(client);
+        unsigned int node_disconnect_count;
+        spdr::PeerInfo node_disconnect_info;
+        c9y::Condition disconnect_cond;
         
-        shared_ptr<Node> node = client.connect(spdr::Address(127,0,0,1, 1343));            
-        client_tracker.wait_connection();
+        ConnectTimeoutFixture()
+        : node_disconnect_count(0) {}
         
-        CHECK_EQUAL(Node::TIMEOUT, node->get_state());       
-    }
-//------------------------------------------------------------------------------
-    class TestMessage : public Message
-    {
-    public:
-        
-        TestMessage()
-        : severity(0) {}
-        
-        TestMessage(unsigned int s, const string& m)
-        : severity(s), message(m) {}
-        
-        TestMessage* clone() const
+        void on_node_disconnect(spdr::PeerInfo info)
         {
-            return new TestMessage(*this);
+            node_disconnect_count++;
+            node_disconnect_info = info;
+            disconnect_cond.signal();
         }
         
-        unsigned int get_type() const
+        void wait_disconnect()
         {
-            return 1337;
-        }
-
-        vector<char> encode() const
-        {
-            vector<char> payload;
-            
-            MemoryPacker packer(payload);
-            packer << severity << message;
-            
-            return payload;
-        }
-    
-        void decode(const vector<char>& payload)
-        {
-            MemoryUnpacker unpacker(payload);
-            unpacker >> severity >> message;
+            disconnect_cond.wait();
         }
         
-        unsigned int get_severity() const
-        {
-            return severity;
-        }
-        
-        const std::string& get_message() const
-        {
-            return message;
-        }
-    
-    private:        
-        unsigned int severity;
-        std::string message;        
     };
     
-//------------------------------------------------------------------------------
-    TEST(send)
+    TEST_FIXTURE(ConnectTimeoutFixture, connect_timeout)
     {
-        Network server(TEST_PROTOCOLL_ID, 1342);
-        server.register_message<TestMessage>();
-        Tracker server_tracker(server);
+        spdr::Network client(2);
+        client.get_disconnect_signal().connect(sigc::mem_fun(this, &ConnectTimeoutFixture::on_node_disconnect));
         
-        Network client(TEST_PROTOCOLL_ID);
-        client.register_message<TestMessage>();
-        Tracker client_tracker(client);
+        client.connect(spdr::Address(127, 0, 0, 1, 1337));
+        wait_disconnect();
         
-        shared_ptr<Node> node = client.connect(spdr::Address(127,0,0,1, 1342));        
-        client_tracker.wait_connection();
-        
-        shared_ptr<Message> msg(new TestMessage(1, "Dump the warp core!"));
-        client.send(node, msg);
-        
-        server_tracker.wait_message();
-        shared_ptr<TestMessage> rmsg = dynamic_pointer_cast<TestMessage>(server_tracker.get_last_message());
-        
-        CHECK(rmsg);        
-        if (rmsg)
-        {
-            CHECK_EQUAL(1, rmsg->get_severity());
-            CHECK_EQUAL("Dump the warp core!", rmsg->get_message());
-        }
+        CHECK_EQUAL(1, node_disconnect_count);
     }
-}
 
+    struct ConnectFixture
+    {
+        
+        unsigned int server_connected_count;
+        unsigned int client_connected_count;
+        c9y::Condition client_connect_cond;
+        
+        ConnectFixture()
+        {
+            server_connected_count = 0;
+            client_connected_count = 0;
+        }
+        
+        void on_server_connected(spdr::PeerInfo info)
+        {
+            server_connected_count++;
+        }
+        
+        void on_client_connected(spdr::PeerInfo info)
+        {
+            client_connected_count++;
+            client_connect_cond.signal();
+        }
+        
+        void on_client_disconnected(spdr::PeerInfo info)
+        {
+            // We need alos to handle the connection failure...
+            client_connect_cond.signal();
+        }
+        
+        void wait_client_connect()
+        {            
+            client_connect_cond.wait();
+        }        
+    };
+
+    TEST_FIXTURE(ConnectFixture, connect)
+    {
+        spdr::Network server(3, 1340);
+        server.get_connect_signal().connect(sigc::mem_fun(this, &ConnectFixture::on_server_connected));
+        
+        spdr::Network client(3);
+        client.get_connect_signal().connect(sigc::mem_fun(this, &ConnectFixture::on_client_connected));
+        client.get_disconnect_signal().connect(sigc::mem_fun(this, &ConnectFixture::on_client_disconnected));
+                
+        client.connect(spdr::Address(127, 0, 0, 1, 1340));
+        
+        wait_client_connect();
+        
+        CHECK_EQUAL(1, client_connected_count);        
+        CHECK_EQUAL(1, server_connected_count);
+        
+    }
+    
+    TEST_FIXTURE(ConnectTimeoutFixture, keep_alive)
+    {
+        spdr::Network server(4, 1339);
+        
+        spdr::Network client(4);
+        client.get_disconnect_signal().connect(sigc::mem_fun(this, &ConnectTimeoutFixture::on_node_disconnect));
+                
+        client.connect(spdr::Address(127, 0, 0, 1, 1339));
+        
+        c9y::sleep(3000);
+        
+        CHECK_EQUAL(0, node_disconnect_count);        
+    }
+    
+    enum MessageId
+    {
+        TEST_MESSAGE_ID = 33
+    };
+    
+    class TestMessage : public spdr::Message
+    {
+    public:
+    
+        TestMessage() {}
+        
+        TestMessage(unsigned int u, const std::string& t)
+        : uid(u), text(t) {}
+        
+        unsigned int get_uid() const
+        {
+            return uid;
+        }
+        
+        const std::string& get_text() const
+        {
+            return text;
+        }
+        
+        unsigned int get_id() const
+        {
+            return TEST_MESSAGE_ID;
+        }
+        
+        void pack(std::ostream& os) const
+        {
+            spdr::pack(os, uid);
+            spdr::pack(os, text);
+        }
+        
+        void unpack(std::istream& is)
+        {
+            spdr::unpack(is, uid);
+            spdr::unpack(is, text);
+        }
+        
+    private:
+        unsigned int uid;
+        std::string text;
+    };
+    
+    struct SendMessageFixture
+    {
+        spdr::Network server;        
+        
+        unsigned int server_message_count;
+        unsigned int client_message_count;
+        
+        unsigned int uid1;
+        unsigned int uid2;
+        
+        std::string text1;
+        std::string text2;
+        
+        c9y::Condition awnser_cond;
+        
+        SendMessageFixture()
+        : server(5, 2338)
+        {
+            server_message_count = 0;
+            client_message_count = 0;
+        }
+        
+        
+        void handle_server_message(spdr::PeerInfo info, spdr::Message& message)
+        {
+            server_message_count++;
+            if (message.get_id() == TEST_MESSAGE_ID)
+            {
+                TestMessage& test_message = dynamic_cast<TestMessage&>(message);
+                uid1 = test_message.get_uid();
+                text1 = test_message.get_text();
+                
+                server.send(info, new TestMessage(1, "Ok batman!"));
+            }
+        }
+        
+        void handle_client_message(spdr::PeerInfo info, spdr::Message& message)
+        {
+            client_message_count++;
+            if (message.get_id() == TEST_MESSAGE_ID)
+            {
+                TestMessage& test_message = dynamic_cast<TestMessage&>(message);
+                uid2 = test_message.get_uid();
+                text2 = test_message.get_text();
+                awnser_cond.signal();
+            }
+        }
+        
+        void wait_awnser()
+        {
+            awnser_cond.wait();
+        }
+    };
+
+    TEST_FIXTURE(SendMessageFixture, send_message)
+    {        
+        server.register_message<TestMessage>(TEST_MESSAGE_ID);
+        server.get_message_signal().connect(sigc::mem_fun(this, &SendMessageFixture::handle_server_message));
+        
+        spdr::Network client(5);
+        client.register_message<TestMessage>(TEST_MESSAGE_ID);
+        client.get_message_signal().connect(sigc::mem_fun(this, &SendMessageFixture::handle_client_message));
+        
+                
+        spdr::PeerInfo info = client.connect(spdr::Address(127, 0, 0, 1, 2338));
+        client.send(info, new TestMessage(0, "To the batmobile!"));
+                
+        wait_awnser();
+        
+        CHECK_EQUAL(1, server_message_count);
+        CHECK_EQUAL(1, client_message_count);
+        
+        CHECK_EQUAL(0, uid1);
+        CHECK_EQUAL(1, uid2);
+        
+        CHECK_EQUAL("To the batmobile!", text1);
+        CHECK_EQUAL("Ok batman!", text2);        
+    }    
+}
