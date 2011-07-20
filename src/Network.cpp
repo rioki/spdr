@@ -190,10 +190,13 @@ namespace spdr
         
         unpack(buff, message_id);
         Message* message = create_message(message_id);
-        if (message != NULL)
+        if (message == NULL)
         {
-            message->unpack(buff);
+            TRACE_ERROR(sanity::compose("Failed to resolve message %0", message_id));
+            return;
         }
+        
+        message->unpack(buff);
         
         TRACE_INFO(sanity::compose("Recived message with id %0", message_id));
         if (message_id < 32)
