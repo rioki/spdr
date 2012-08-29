@@ -1,5 +1,5 @@
-// Iced Blue
-// Copyright 2011 Sean Farrell
+// spdr - easy networking
+// Copyright 2011-2012 Sean Farrell
 
 #include <UnitTest++/UnitTest++.h>
 
@@ -9,7 +9,7 @@
 
 #include "Network.h"
 
-SUITE(NodeTest)
+SUITE(NetworkTest)
 {        
     TEST(default_constructible)
     {

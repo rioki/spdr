@@ -1,5 +1,6 @@
-*.mk
-*.session
-*.tags
-Debug
-Release
+*.o
+*.d
+*.a
+*.so
+*.dll
+*.exe

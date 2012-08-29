@@ -1,8 +1,8 @@
-// Iced Blue
-// Copyright 2011 Sean Farrell
+// spdr - easy networking
+// Copyright 2011-2012 Sean Farrell
 
-#ifndef _IBNET_NODE_INFO_H_
-#define _IBNET_NODE_INFO_H_
+#ifndef _SPDR_NODE_INFO_H_
+#define _SPDR_NODE_INFO_H_
 
 #include "Address.h"
 

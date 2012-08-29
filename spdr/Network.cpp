@@ -1,5 +1,5 @@
-// Iced Blue
-// Copyright 2011 Sean Farrell
+// spdr - easy networking
+// Copyright 2011-2012 Sean Farrell
 
 #include "Network.h"
 
@@ -7,9 +7,6 @@
 #include <algorithm>
 #include <ctime>
 #include <typeinfo>
-
-#include <sanity/trace.h>
-#include <sanity/compose.h>
 
 #include "SystemMessageId.h"
 #include "KeepAliveMessage.h"
@@ -40,8 +37,6 @@ namespace spdr
     {
         register_system_messages();
         worker.start();
-        
-        TRACE_INFO(sanity::compose("Create network node with protocol id %0.", protocol_id));
     }
     
     Network::Network(unsigned int pi, unsigned int po)
@@ -50,8 +45,6 @@ namespace spdr
     {
         register_system_messages();
         worker.start();
-        
-        TRACE_INFO(sanity::compose("Create network node with protocol id %0 on port %1.", protocol_id, po));
     }
     
     void delete_peer_info(PeerInfo* obj)
@@ -63,19 +56,15 @@ namespace spdr
     {
         try
         {
-            TRACE_INFO("Destroying network node.");
-            
             running = false;
             worker.join();            
             
             std::for_each(connected_nodes.begin(), connected_nodes.end(), delete_peer_info);
             connected_nodes.clear();
-            
-            TRACE_INFO("Network node destroyed.");
         }
         catch (std::exception& ex)
         {
-            TRACE_INFO(ex.what());
+            // weep silently
         }
     }
 
@@ -89,7 +78,6 @@ namespace spdr
         // NOTE: 
         // The connection is initiated by a keep alive. Here we just create 
         // a PeerInfo and the normal keep alive will initiate the comunication.
-        TRACE_INFO(sanity::compose("Connecting to %0.", address));
         PeerInfo* info = get_info(address);
         return *info;
     }
@@ -181,7 +169,6 @@ namespace spdr
         unpack(buff, in_pid);                
         if (in_pid != protocol_id)
         {
-            TRACE_INFO("Message rejected because of wrong protocol id.");
             return;
         }
         
@@ -192,13 +179,11 @@ namespace spdr
         Message* message = create_message(message_id);
         if (message == NULL)
         {
-            TRACE_ERROR(sanity::compose("Failed to resolve message %0", message_id));
             return;
         }
         
         message->unpack(buff);
         
-        TRACE_INFO(sanity::compose("Recived message with id %0", message_id));
         if (message_id < 32)
         {            
             handle_system_message(*info, *message);
@@ -221,7 +206,6 @@ namespace spdr
         {
             if ((now - (*iter)->last_message_sent) > 250)
             {
-                TRACE_INFO(sanity::compose("Sending keep alive to %0", (*iter)->address));
                 send(**iter, new KeepAliveMessage);
                 (*iter)->last_message_sent = now;
             }
@@ -239,7 +223,6 @@ namespace spdr
         {
             if ((now - (*iter)->last_message_recived) > 2000)
             {
-                TRACE_INFO(sanity::compose("Peer %0 timed out.", (*iter)->address));
                 disconnect_signal.emit(**iter);
                 iter = connected_nodes.erase(iter);
             }

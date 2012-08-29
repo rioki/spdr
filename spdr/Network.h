@@ -1,8 +1,8 @@
-// Iced Blue
-// Copyright 2011 Sean Farrell
+// spdr - easy networking
+// Copyright 2011-2012 Sean Farrell
 
-#ifndef _IBNET_NODE_H_
-#define _IBNET_NODE_H_
+#ifndef _SPDR_NODE_H_
+#define _SPDR_NODE_H_
 
 #include <sigc++/signal.h>
 #include <queue>

@@ -1,8 +1,8 @@
-// Iced Blue
-// Copyright 2011 Sean Farrell
+// spdr - easy networking
+// Copyright 2011-2012 Sean Farrell
 
-#ifndef _IBNET_CONNECT_MESSAGE_H_
-#define _IBNET_CONNECT_MESSAGE_H_
+#ifndef _SPDR_CONNECT_MESSAGE_H_
+#define _SPDR_CONNECT_MESSAGE_H_
 
 #include "Message.h"
 

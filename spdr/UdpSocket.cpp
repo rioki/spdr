@@ -1,5 +1,5 @@
 // spdr - easy networking
-// Copyright 2011 Sean Farrell
+// Copyright 2011-2012 Sean Farrell
 
 #include "UdpSocket.h"
 

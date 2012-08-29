@@ -1,8 +1,8 @@
 // spdr - easy networking
-// Copyright 2011 Sean Farrell
+// Copyright 2011-2012 Sean Farrell
 
-#ifndef _WSA_SENTRY_H_
-#define _WSA_SENTRY_H_
+#ifndef _SPDR_WSA_SENTRY_H_
+#define _SPDR_WSA_SENTRY_H_
 
 namespace spdr
 {

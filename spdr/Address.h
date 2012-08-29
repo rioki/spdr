@@ -1,5 +1,5 @@
 // spdr - easy networking
-// Copyright 2011 Sean Farrell
+// Copyright 2011-2012 Sean Farrell
 
 #ifndef _SPDR_ADDRESS_H_
 #define _SPDR_ADDRESS_H_
