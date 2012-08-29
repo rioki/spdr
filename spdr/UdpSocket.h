@@ -7,7 +7,7 @@
 #include "Address.h"
 
 #include <string>
-#include <tr1/tuple>
+#include <tuple>
 
 namespace spdr
 {
@@ -45,7 +45,7 @@ namespace spdr
         /**
          * Recive a packet.
          **/
-        std::tr1::tuple<Address, std::string > recive();
+        std::tuple<Address, std::string> recive();
         
     private:
         int handle;

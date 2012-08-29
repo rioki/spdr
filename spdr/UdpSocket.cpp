@@ -65,7 +65,7 @@ namespace spdr
     }
     
 //------------------------------------------------------------------------------
-    std::tr1::tuple<Address, std::string > UdpSocket::recive()
+    std::tuple<Address, std::string> UdpSocket::recive()
     {
         std::string buff(get_max_packet_size(), 0);    
         sockaddr_in c_adr;
@@ -75,12 +75,12 @@ namespace spdr
         
         if (received_bytes <= 0)
         {
-            return std::tr1::make_tuple(Address(), std::string());
+            return std::make_tuple(Address(), std::string());
         }
         else
         {
             buff.resize(received_bytes);
-            return std::tr1::make_tuple(Address(c_adr), buff);
+            return std::make_tuple(Address(c_adr), buff);
         }
     }
 

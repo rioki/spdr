@@ -242,5 +242,5 @@ SUITE(NetworkTest)
         
         CHECK_EQUAL("To the batmobile!", text1);
         CHECK_EQUAL("Ok batman!", text2);        
-    }    
+    }
 }

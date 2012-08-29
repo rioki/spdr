@@ -8,6 +8,7 @@
 #include <queue>
 #include <list>
 #include <map>
+#include <tuple>
 
 #include <c9y/Thread.h>
 #include <c9y/Mutex.h>
@@ -94,10 +95,10 @@ namespace spdr
         bool running;
         c9y::Thread worker;
 
-        std::list<PeerInfo*> connected_nodes;
-        c9y::Mutex connected_nodes_mutex;
+        std::list<PeerInfo*> peers;
+        c9y::Mutex peers_mutex;
         
-        std::queue<std::tr1::tuple<PeerInfo, Message*> > send_queue;
+        std::queue<std::tuple<PeerInfo, Message*> > send_queue;
         c9y::Mutex send_queue_mutex;
         
         std::map<unsigned int, MessageCreator> message_map;

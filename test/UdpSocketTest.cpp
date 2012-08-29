@@ -32,7 +32,7 @@ SUITE(UdpSocket)
         std::string buff2;    
         while (buff2.empty())
         {
-            std::tr1::tie(adr2, buff2) = socket2.recive();        
+            std::tie(adr2, buff2) = socket2.recive();        
         }
         
         CHECK(buff1 == buff2);

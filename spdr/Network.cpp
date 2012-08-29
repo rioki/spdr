@@ -36,6 +36,7 @@ namespace spdr
       worker(sigc::mem_fun(this, &Network::worker_main)) 
     {
         register_system_messages();
+        running = true;
         worker.start();
     }
     
@@ -47,20 +48,18 @@ namespace spdr
         worker.start();
     }
     
-    void delete_peer_info(PeerInfo* obj)
-    {
-        delete obj;
-    }
-
     Network::~Network() 
     {
         try
         {
             running = false;
-            worker.join();            
+            worker.join();                        
             
-            std::for_each(connected_nodes.begin(), connected_nodes.end(), delete_peer_info);
-            connected_nodes.clear();
+            for (PeerInfo* info : peers)
+            {
+                delete info;
+            }
+            peers.clear();
         }
         catch (std::exception& ex)
         {
@@ -95,7 +94,7 @@ namespace spdr
     void Network::send(const PeerInfo& info, Message* message)
     {
         c9y::Lock<c9y::Mutex> lock(send_queue_mutex);
-        send_queue.push(std::tr1::make_tuple(info, message));
+        send_queue.push(std::make_tuple(info, message));
     }
     
     sigc::signal<void, PeerInfo, Message&>& Network::get_message_signal()
@@ -109,8 +108,7 @@ namespace spdr
     }
     
     void Network::worker_main()
-    {
-        running = true;
+    {        
         while (running)
         {
             do_send();
@@ -130,12 +128,12 @@ namespace spdr
             {
                 return;            
             }
-            std::tr1::tie(info, message) = send_queue.front();
+            std::tie(info, message) = send_queue.front();
             send_queue.pop();
         }
         
         {
-            c9y::Lock<c9y::Mutex> lock(connected_nodes_mutex);
+            c9y::Lock<c9y::Mutex> lock(peers_mutex);
                 
             PeerInfo* pinfo = get_info(info.get_address());
             pinfo->last_message_sent = get_time();
@@ -154,7 +152,7 @@ namespace spdr
     {
         Address address;
         std::string data;        
-        std::tr1::tie(address, data) = socket.recive();
+        std::tie(address, data) = socket.recive();
         
         if (data.empty())
         {
@@ -198,11 +196,11 @@ namespace spdr
     
     void Network::do_keep_alive()
     {
-        c9y::Lock<c9y::Mutex> lock(connected_nodes_mutex);
+        c9y::Lock<c9y::Mutex> lock(peers_mutex);
         unsigned int now = get_time();
 
-        std::list<PeerInfo*>::iterator iter = connected_nodes.begin();
-        while (iter != connected_nodes.end())
+        std::list<PeerInfo*>::iterator iter = peers.begin();
+        while (iter != peers.end())
         {
             if ((now - (*iter)->last_message_sent) > 250)
             {
@@ -215,16 +213,16 @@ namespace spdr
     
     void Network::do_timeout()
     {
-        c9y::Lock<c9y::Mutex> lock(connected_nodes_mutex);
+        c9y::Lock<c9y::Mutex> lock(peers_mutex);
         unsigned int now = get_time();
         
-        std::list<PeerInfo*>::iterator iter = connected_nodes.begin();
-        while (iter != connected_nodes.end())
+        std::list<PeerInfo*>::iterator iter = peers.begin();
+        while (iter != peers.end())
         {
             if ((now - (*iter)->last_message_recived) > 2000)
             {
                 disconnect_signal.emit(**iter);
-                iter = connected_nodes.erase(iter);
+                iter = peers.erase(iter);
             }
             else
             {
@@ -235,18 +233,18 @@ namespace spdr
     
     PeerInfo* Network::get_info(const Address& address) 
     {
-        c9y::Lock<c9y::Mutex> lock(connected_nodes_mutex);
+        c9y::Lock<c9y::Mutex> lock(peers_mutex);
                 
         std::list<PeerInfo*>::iterator iter;
-        iter = std::find_if(connected_nodes.begin(), connected_nodes.end(), info_with_address(address));
-        if (iter != connected_nodes.end())
+        iter = std::find_if(peers.begin(), peers.end(), info_with_address(address));
+        if (iter != peers.end())
         {
             return *iter;
         }
         else
         {
             PeerInfo* info = new PeerInfo(address, get_time());        
-            connected_nodes.push_back(info);
+            peers.push_back(info);
             return info;
         }
     }
