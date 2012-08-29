@@ -213,6 +213,12 @@ SUITE(NetworkTest)
             }
         }
         
+        void handle_client_dissconnect(spdr::PeerInfo info)
+        {
+            // we just got let off the hock, abort the test.
+            awnser_cond.signal();
+        }
+        
         void wait_awnser()
         {
             awnser_cond.wait();
@@ -227,6 +233,7 @@ SUITE(NetworkTest)
         spdr::Network client(5);
         client.register_message<TestMessage>(TEST_MESSAGE_ID);
         client.get_message_signal().connect(sigc::mem_fun(this, &SendMessageFixture::handle_client_message));
+        client.get_disconnect_signal().connect(sigc::mem_fun(this, &SendMessageFixture::handle_client_dissconnect));
         
                 
         spdr::PeerInfo info = client.connect(spdr::Address(127, 0, 0, 1, 2338));
