@@ -45,6 +45,7 @@ namespace spdr
       worker(sigc::mem_fun(this, &Network::worker_main)) 
     {
         register_system_messages();
+        running = true;
         worker.start();
     }
     
@@ -55,9 +56,9 @@ namespace spdr
             running = false;
             worker.join();                        
             
-            for (PeerInfo* info : peers)
+            for (PeerInfo* peer : peers)
             {
-                delete info;
+                delete peer;
             }
             peers.clear();
         }

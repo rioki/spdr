@@ -9,6 +9,11 @@
 
 #include "Network.h"
 
+// This define is used to dertmain the port range to test on.
+// That range may actually be used by some other application, then you just 
+// need to change it.
+#define BASE_PORT 8000
+
 SUITE(NetworkTest)
 {        
     TEST(default_constructible)
@@ -45,7 +50,7 @@ SUITE(NetworkTest)
         spdr::Network client(2);
         client.get_disconnect_signal().connect(sigc::mem_fun(this, &ConnectTimeoutFixture::on_node_disconnect));
         
-        client.connect(spdr::Address(127, 0, 0, 1, 1337));
+        client.connect(spdr::Address(127, 0, 0, 1, BASE_PORT + 0));
         wait_disconnect();
         
         CHECK_EQUAL(1, node_disconnect_count);
@@ -89,14 +94,14 @@ SUITE(NetworkTest)
 
     TEST_FIXTURE(ConnectFixture, connect)
     {
-        spdr::Network server(3, 1340);
+        spdr::Network server(3, BASE_PORT + 1);
         server.get_connect_signal().connect(sigc::mem_fun(this, &ConnectFixture::on_server_connected));
         
         spdr::Network client(3);
         client.get_connect_signal().connect(sigc::mem_fun(this, &ConnectFixture::on_client_connected));
         client.get_disconnect_signal().connect(sigc::mem_fun(this, &ConnectFixture::on_client_disconnected));
                 
-        client.connect(spdr::Address(127, 0, 0, 1, 1340));
+        client.connect(spdr::Address(127, 0, 0, 1, BASE_PORT + 1));
         
         wait_client_connect();
         
@@ -107,12 +112,12 @@ SUITE(NetworkTest)
     
     TEST_FIXTURE(ConnectTimeoutFixture, keep_alive)
     {
-        spdr::Network server(4, 1339);
+        spdr::Network server(4, BASE_PORT + 2);
         
         spdr::Network client(4);
         client.get_disconnect_signal().connect(sigc::mem_fun(this, &ConnectTimeoutFixture::on_node_disconnect));
                 
-        client.connect(spdr::Address(127, 0, 0, 1, 1339));
+        client.connect(spdr::Address(127, 0, 0, 1, BASE_PORT + 2));
         
         c9y::sleep(3000);
         
@@ -181,7 +186,7 @@ SUITE(NetworkTest)
         c9y::Condition awnser_cond;
         
         SendMessageFixture()
-        : server(5, 2338)
+        : server(5, BASE_PORT + 3)
         {
             server_message_count = 0;
             client_message_count = 0;
@@ -236,7 +241,7 @@ SUITE(NetworkTest)
         client.get_disconnect_signal().connect(sigc::mem_fun(this, &SendMessageFixture::handle_client_dissconnect));
         
                 
-        spdr::PeerInfo info = client.connect(spdr::Address(127, 0, 0, 1, 2338));
+        spdr::PeerInfo info = client.connect(spdr::Address(127, 0, 0, 1, BASE_PORT + 3));
         client.send(info, new TestMessage(0, "To the batmobile!"));
                 
         wait_awnser();

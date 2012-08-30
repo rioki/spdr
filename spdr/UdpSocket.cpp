@@ -11,8 +11,11 @@
 #include <fcntl.h>
 #endif
 
+#include <iostream>
 #include <stdexcept>
 #include <vector>
+
+#include "debug.h"
 
 namespace spdr
 {
@@ -31,6 +34,7 @@ namespace spdr
 //------------------------------------------------------------------------------
     UdpSocket::~UdpSocket() 
     {
+        TRACE("Closed handle 0x%04X.", handle);
 #if _WIN32
         closesocket(handle);
 #else
@@ -54,7 +58,7 @@ namespace spdr
         if (data.empty())
         {
             throw std::invalid_argument("the data is empty");
-        }
+        }              
         
         sockaddr_in c_adr = address.get_c_obj();
         int sent_bytes = sendto(handle, &data[0], data.size(), 0, (sockaddr*)&c_adr, sizeof(sockaddr_in));
@@ -62,6 +66,8 @@ namespace spdr
         {
             throw std::runtime_error("failed to send packet");
         }
+        
+        TRACE("Sent %d bytes to %d.%d.%d.%d:%d. (0x%04X)", data.size(), address.get_a(), address.get_b(), address.get_c(), address.get_d(), address.get_port(), handle);
     }
     
 //------------------------------------------------------------------------------
@@ -79,8 +85,11 @@ namespace spdr
         }
         else
         {
+            Address address(c_adr);
             buff.resize(received_bytes);
-            return std::make_tuple(Address(c_adr), buff);
+            
+            TRACE("Recived %d bytes to %d.%d.%d.%d:%d. (0x%04X)", buff.size(), address.get_a(), address.get_b(), address.get_c(), address.get_d(), address.get_port(), handle);
+            return std::make_tuple(address, buff);
         }
     }
 
@@ -99,9 +108,15 @@ namespace spdr
         address.sin_family = AF_INET;
         address.sin_addr.s_addr = INADDR_ANY;
         address.sin_port = htons((unsigned short)port);
-        if (bind(handle, (const sockaddr*)&address, sizeof(sockaddr_in)) < 0)
+        int r = bind(handle, (const sockaddr*)&address, sizeof(sockaddr_in));
+        if (r < 0)
         {
+            TRACE("Failed to bind port %d. (r = %d)", port, r);
             throw std::runtime_error("failed to bind socket");
+        }
+        else
+        {
+            TRACE("Successfully bound 0x%04X port %d.", handle, port);
         }
         
         // set non blocking mode
