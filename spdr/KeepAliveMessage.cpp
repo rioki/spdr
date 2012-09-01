@@ -3,8 +3,6 @@
 
 #include "KeepAliveMessage.h"
 
-#include "SystemMessageId.h"
-
 namespace spdr
 {
     KeepAliveMessage::KeepAliveMessage() {}

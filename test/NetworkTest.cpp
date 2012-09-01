@@ -8,6 +8,7 @@
 #include <c9y/utility.h>
 
 #include "Network.h"
+#include "debug.h"
 
 // This define is used to dertmain the port range to test on.
 // That range may actually be used by some other application, then you just 
@@ -61,12 +62,16 @@ SUITE(NetworkTest)
         
         unsigned int server_connected_count;
         unsigned int client_connected_count;
+        unsigned int server_disconnected_count;
+        unsigned int client_disconnected_count;
         c9y::Condition client_connect_cond;
         
         ConnectFixture()
         {
             server_connected_count = 0;
             client_connected_count = 0;
+            server_disconnected_count = 0;
+            client_disconnected_count = 0;
         }
         
         void on_server_connected(spdr::PeerInfo info)
@@ -82,13 +87,22 @@ SUITE(NetworkTest)
         
         void on_client_disconnected(spdr::PeerInfo info)
         {
-            // We need alos to handle the connection failure...
-            client_connect_cond.signal();
+            client_disconnected_count++;
+            client_connect_cond.signal();            
+        }
+        
+        void on_server_disconnected(spdr::PeerInfo info)
+        {
+            server_disconnected_count++;
+            client_connect_cond.signal();            
         }
         
         void wait_client_connect()
         {            
-            client_connect_cond.wait();
+            if (client_connected_count == 0)
+            {
+                client_connect_cond.wait();
+            }
         }        
     };
 
@@ -107,6 +121,8 @@ SUITE(NetworkTest)
         
         CHECK_EQUAL(1, client_connected_count);        
         CHECK_EQUAL(1, server_connected_count);
+        CHECK_EQUAL(0, client_disconnected_count);        
+        CHECK_EQUAL(0, server_disconnected_count);
         
     }
     
@@ -123,7 +139,7 @@ SUITE(NetworkTest)
         
         CHECK_EQUAL(0, node_disconnect_count);        
     }
-    
+        
     enum MessageId
     {
         TEST_MESSAGE_ID = 33
@@ -254,5 +270,27 @@ SUITE(NetworkTest)
         
         CHECK_EQUAL("To the batmobile!", text1);
         CHECK_EQUAL("Ok batman!", text2);        
+    }
+    
+    TEST_FIXTURE(ConnectFixture, disconnect)
+    {
+        spdr::Network server(4, BASE_PORT + 4);
+        server.get_connect_signal().connect(sigc::mem_fun(this, &ConnectFixture::on_server_connected));
+        server.get_disconnect_signal().connect(sigc::mem_fun(this, &ConnectFixture::on_server_disconnected));
+        
+        spdr::Network client(4);
+        client.get_connect_signal().connect(sigc::mem_fun(this, &ConnectFixture::on_client_connected));        
+        client.get_disconnect_signal().connect(sigc::mem_fun(this, &ConnectFixture::on_client_disconnected));
+                
+        client.connect(spdr::Address(127, 0, 0, 1, BASE_PORT + 4));
+        
+        wait_client_connect();
+        client.disconnect(spdr::Address(127, 0, 0, 1, BASE_PORT + 4));  
+        c9y::sleep(4500);        
+        
+        CHECK_EQUAL(1, client_connected_count);        
+        CHECK_EQUAL(1, server_connected_count);    
+        CHECK_EQUAL(1, client_disconnected_count);
+        CHECK_EQUAL(1, server_disconnected_count);
     }
 }

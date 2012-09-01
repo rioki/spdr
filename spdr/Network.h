@@ -64,6 +64,11 @@ namespace spdr
          * Connect to a peer.
          **/
         PeerInfo connect(Address address);
+        
+        /**
+         * Disconnect from a peer.
+         **/
+        void disconnect(Address address);
 
         /**
          * Get the signal that is emitted when a connection is established.
@@ -117,9 +122,8 @@ namespace spdr
         void do_keep_alive();
         void do_timeout();
         
-        PeerInfo* get_info(const Address& address);
+        PeerInfo* get_info(const Address& address, bool create = true);
         Message* create_message(unsigned int id);
-        void handle_system_message(PeerInfo info, Message& message);
     
         Network(const Network&);
         const Network& operator = (const Network&);

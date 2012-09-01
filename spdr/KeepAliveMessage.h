@@ -8,6 +8,11 @@
 
 namespace spdr
 {
+    enum
+    {
+        KEEP_ALIVE_MESSAGE = 0
+    };   
+    
     class KeepAliveMessage : public Message
     {
     public:

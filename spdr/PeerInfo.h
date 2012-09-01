@@ -16,8 +16,12 @@ namespace spdr
         PeerInfo(const Address& address, unsigned int now);
         
         const Address& get_address() const;
+        
+        bool is_connected() const;
 
     private:
+        bool connected;
+        bool disconnecting;
         Address address;
         unsigned int last_message_recived;
         unsigned int last_message_sent;

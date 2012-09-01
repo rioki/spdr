@@ -8,8 +8,10 @@
 #include <ctime>
 #include <typeinfo>
 
-#include "SystemMessageId.h"
 #include "KeepAliveMessage.h"
+
+#define DEBUG
+#include "debug.h" 
 
 namespace spdr
 {
@@ -78,8 +80,26 @@ namespace spdr
         // NOTE: 
         // The connection is initiated by a keep alive. Here we just create 
         // a PeerInfo and the normal keep alive will initiate the comunication.
-        PeerInfo* info = get_info(address);
-        return *info;
+        
+        TRACE("Connecting to %d.%d.%d.%d:%d.", address.get_a(), address.get_b(), address.get_c(), address.get_d(), address.get_port());
+        
+        PeerInfo* peer = get_info(address);
+        return *peer;
+    }
+    
+    void Network::disconnect(Address address)
+    {
+        c9y::Lock<c9y::Mutex> lock(peers_mutex);
+        
+        TRACE("Disconnecting from %d.%d.%d.%d:%d.", address.get_a(), address.get_b(), address.get_c(), address.get_d(), address.get_port());
+        
+        PeerInfo* peer = get_info(address, false);
+        if (peer != NULL && peer->connected)
+        {
+            peer->connected = false;
+            peer->disconnecting = true;
+            disconnect_signal.emit(*peer);
+        }
     }
     
     sigc::signal<void, PeerInfo>& Network::get_connect_signal()
@@ -105,7 +125,7 @@ namespace spdr
     
     void Network::register_system_messages()
     {
-        register_message<KeepAliveMessage>(0);
+        register_message<KeepAliveMessage>(KEEP_ALIVE_MESSAGE);
     }
     
     void Network::worker_main()
@@ -136,9 +156,11 @@ namespace spdr
         {
             c9y::Lock<c9y::Mutex> lock(peers_mutex);
                 
-            PeerInfo* pinfo = get_info(info.get_address());
-            pinfo->last_message_sent = get_time();
+            PeerInfo* peer = get_info(info.get_address());
+            peer->last_message_sent = get_time();            
         }
+        
+        TRACE("Sending Message %d to %d.%d.%d.%d:%d.", message->get_id(), info.get_address().get_a(), info.get_address().get_b(), info.get_address().get_c(), info.get_address().get_d(), info.get_address().get_port());
         
         // REVIEW: Should we check here if the node info still is valid?
         std::stringstream buff;
@@ -171,8 +193,14 @@ namespace spdr
             return;
         }
         
-        PeerInfo* info = get_info(address);
-        info->last_message_recived = get_time();
+        PeerInfo* peer = get_info(address);
+        if (peer->connected == false && peer->disconnecting == false)
+        {
+            TRACE("Connected to %d.%d.%d.%d:%d.", address.get_a(), address.get_b(), address.get_c(), address.get_d(), address.get_port());            
+            peer->connected = true;
+            connect_signal.emit(*peer);
+        }        
+        peer->last_message_recived = get_time();
         
         unpack(buff, message_id);
         Message* message = create_message(message_id);
@@ -183,13 +211,11 @@ namespace spdr
         
         message->unpack(buff);
         
-        if (message_id < 32)
+        TRACE("Recived Message %d to %d.%d.%d.%d:%d.", message->get_id(), address.get_a(), address.get_b(), address.get_c(), address.get_d(), address.get_port());
+        
+        if (message_id != KEEP_ALIVE_MESSAGE)
         {            
-            handle_system_message(*info, *message);
-        }
-        else
-        {
-            message_signal.emit(*info, *message);
+            message_signal.emit(*peer, *message);
         }
         
         delete message;
@@ -203,7 +229,7 @@ namespace spdr
         std::list<PeerInfo*>::iterator iter = peers.begin();
         while (iter != peers.end())
         {
-            if ((now - (*iter)->last_message_sent) > 250)
+            if ((*iter)->connected && (now - (*iter)->last_message_sent) > 250)
             {
                 send(**iter, new KeepAliveMessage);
                 (*iter)->last_message_sent = now;
@@ -220,9 +246,18 @@ namespace spdr
         std::list<PeerInfo*>::iterator iter = peers.begin();
         while (iter != peers.end())
         {
-            if ((now - (*iter)->last_message_recived) > 2000)
+            unsigned int timeout = (*iter)->disconnecting ? 4000 : 2000;            
+            
+            if ((now - (*iter)->last_message_recived) > timeout)
             {
-                disconnect_signal.emit(**iter);
+                TRACE("Disconnected from %d.%d.%d.%d:%d.", (*iter)->address.get_a(), (*iter)->address.get_b(), (*iter)->address.get_c(), (*iter)->address.get_d(), (*iter)->address.get_port());
+                
+                // if the connected flag is false the diconnect_signal was already emitted
+                if ((*iter)->connected == false) 
+                {
+                    disconnect_signal.emit(**iter);
+                }
+                delete *iter;
                 iter = peers.erase(iter);
             }
             else
@@ -232,21 +267,27 @@ namespace spdr
         }
     }
     
-    PeerInfo* Network::get_info(const Address& address) 
+    PeerInfo* Network::get_info(const Address& address, bool create) 
     {
-        c9y::Lock<c9y::Mutex> lock(peers_mutex);
-                
         std::list<PeerInfo*>::iterator iter;
         iter = std::find_if(peers.begin(), peers.end(), info_with_address(address));
         if (iter != peers.end())
         {
             return *iter;
         }
-        else
+        else 
         {
-            PeerInfo* info = new PeerInfo(address, get_time());        
-            peers.push_back(info);
-            return info;
+            if (create)
+            {                
+                PeerInfo* info = new PeerInfo(address, get_time());        
+                info->last_message_recived = get_time();
+                peers.push_back(info);                
+                return info;
+            }
+            else
+            {
+                return NULL;
+            }
         }
     }
     
@@ -262,16 +303,6 @@ namespace spdr
         else
         {
             return NULL;    
-        }
-    }
-    
-    void Network::handle_system_message(PeerInfo info, Message& message)
-    {
-        switch (message.get_id())
-        {
-            case CONNECT_MESSAGE:
-                connect_signal.emit(info);
-                break;
         }
     }
 }
