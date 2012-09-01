@@ -286,7 +286,7 @@ SUITE(NetworkTest)
         
         wait_client_connect();
         client.disconnect(spdr::Address(127, 0, 0, 1, BASE_PORT + 4));  
-        c9y::sleep(4500);        
+        c9y::sleep(6500);        
         
         CHECK_EQUAL(1, client_connected_count);        
         CHECK_EQUAL(1, server_connected_count);    

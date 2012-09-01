@@ -10,7 +10,6 @@
 
 #include "KeepAliveMessage.h"
 
-#define DEBUG
 #include "debug.h" 
 
 namespace spdr
@@ -98,7 +97,7 @@ namespace spdr
         {
             peer->connected = false;
             peer->disconnecting = true;
-            disconnect_signal.emit(*peer);
+            //disconnect_signal.emit(*peer);
         }
     }
     
@@ -246,17 +245,13 @@ namespace spdr
         std::list<PeerInfo*>::iterator iter = peers.begin();
         while (iter != peers.end())
         {
-            unsigned int timeout = (*iter)->disconnecting ? 4000 : 2000;            
+            unsigned int timeout = (*iter)->disconnecting ? 3000 : 2000;            
             
             if ((now - (*iter)->last_message_recived) > timeout)
             {
                 TRACE("Disconnected from %d.%d.%d.%d:%d.", (*iter)->address.get_a(), (*iter)->address.get_b(), (*iter)->address.get_c(), (*iter)->address.get_d(), (*iter)->address.get_port());
                 
-                // if the connected flag is false the diconnect_signal was already emitted
-                if ((*iter)->connected == false) 
-                {
-                    disconnect_signal.emit(**iter);
-                }
+                disconnect_signal.emit(**iter);
                 delete *iter;
                 iter = peers.erase(iter);
             }
@@ -280,7 +275,6 @@ namespace spdr
             if (create)
             {                
                 PeerInfo* info = new PeerInfo(address, get_time());        
-                info->last_message_recived = get_time();
                 peers.push_back(info);                
                 return info;
             }

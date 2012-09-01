@@ -1,8 +1,6 @@
 
 #include "debug.h"
 
-#define DEBUG
-
 #ifdef DEBUG
 
 #include <stdarg.h>
