@@ -7,9 +7,15 @@
 
 namespace spdr
 {
-    Message::Message() {}
+    Message::Message()
+    : sequence_number(0), sent_time(0) {}
     
     Message::~Message() {}
+
+    unsigned int Message::get_sequence_number() const
+    {
+        return sequence_number;
+    }    
     
     void pack(std::ostream& os, bool value)
     {

@@ -1,8 +1,6 @@
 
 #include "debug.h"
 
-#ifdef DEBUG
-
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -27,6 +25,4 @@ namespace spdr
         fflush(stderr);
     }
 }
-
-#endif  
 

@@ -159,6 +159,11 @@ SUITE(NetworkTest)
             return uid;
         }
         
+        bool is_reliable() const
+        {
+            return true;
+        }
+        
         const std::string& get_text() const
         {
             return text;
@@ -218,7 +223,7 @@ SUITE(NetworkTest)
                 uid1 = test_message.get_uid();
                 text1 = test_message.get_text();
                 
-                server.send(info, new TestMessage(1, "Ok batman!"));
+                server.send(info, TestMessage(1, "Ok batman!"));
             }
         }
         
@@ -258,7 +263,7 @@ SUITE(NetworkTest)
         
                 
         spdr::PeerInfo info = client.connect(spdr::Address(127, 0, 0, 1, BASE_PORT + 3));
-        client.send(info, new TestMessage(0, "To the batmobile!"));
+        client.send(info, TestMessage(0, "To the batmobile!"));
                 
         wait_awnser();
         
@@ -292,5 +297,5 @@ SUITE(NetworkTest)
         CHECK_EQUAL(1, server_connected_count);    
         CHECK_EQUAL(1, client_disconnected_count);
         CHECK_EQUAL(1, server_disconnected_count);
-    }
+    }    
 }

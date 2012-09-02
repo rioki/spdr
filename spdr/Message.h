@@ -21,9 +21,19 @@ namespace spdr
         
         virtual unsigned int get_id() const = 0;
         
+        virtual bool is_reliable() const = 0;
+        
+        unsigned int get_sequence_number() const;
+        
         virtual void pack(std::ostream& os) const = 0;
         
         virtual void unpack(std::istream& is) = 0;
+        
+    private:
+        unsigned int sequence_number;
+        unsigned int sent_time;
+        
+    friend class Network;
     };
     
     void pack(std::ostream& os, bool value);

@@ -23,6 +23,8 @@ namespace spdr
         
         virtual unsigned int get_id() const;
         
+        virtual bool is_reliable() const;
+        
         virtual void pack(std::ostream& os) const;
         
         virtual void unpack(std::istream& is);

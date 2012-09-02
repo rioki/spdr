@@ -90,7 +90,12 @@ namespace spdr
         /**
          * Send a message.
          **/
-        void send(const PeerInfo& info, Message* message);
+        template <typename Type>
+        void send(const PeerInfo& info, Type message)
+        {
+            c9y::Lock<c9y::Mutex> lock(send_queue_mutex);
+            send_queue.push(std::make_tuple(info, new Type(message)));
+        }
         
         sigc::signal<void, PeerInfo, Message&>& get_message_signal();
     
@@ -106,6 +111,9 @@ namespace spdr
         std::queue<std::tuple<PeerInfo, Message*> > send_queue;
         c9y::Mutex send_queue_mutex;
         
+        std::vector<std::tuple<PeerInfo, Message*> > sent_messages;
+        c9y::Mutex sent_messages_mutex;
+        
         std::map<unsigned int, MessageCreator> message_map;
         c9y::Mutex message_map_mutex;
         
@@ -119,8 +127,10 @@ namespace spdr
         
         void do_send();
         void do_recive();
+        void handle_incomming_acks(PeerInfo* peer, unsigned int sequence_number, unsigned int last_ack, unsigned int ack_field);
         void do_keep_alive();
-        void do_timeout();
+        void do_timeout(); 
+        void do_reliable_messages();
         
         PeerInfo* get_info(const Address& address, bool create = true);
         Message* create_message(unsigned int id);

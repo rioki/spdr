@@ -38,30 +38,42 @@ namespace spdr
          **/
         Address(sockaddr_in c_obj);
         
+        void set_a(unsigned char value);
+        
         /**
          * Get A Component of the IP address.
          **/
         unsigned char get_a() const;
+        
+        void set_b(unsigned char value);
         
         /**
          * Get B Component of the IP address.
          **/
         unsigned char get_b() const;
         
+        void set_c(unsigned char value);
+        
         /**
          * Get C Component of the IP address.
          **/
         unsigned char get_c() const;
+        
+        void set_d(unsigned char value);
         
         /**
          * Get D Component of the IP address.
          **/
         unsigned char get_d() const;
         
+        void set_ip(unsigned long value);
+        
         /**
          * Get the entiere IP address.
          **/
         unsigned long get_ip() const;
+        
+        void set_port(unsigned short value);
         
         /**
          * Get network port.

@@ -25,6 +25,9 @@ namespace spdr
         Address address;
         unsigned int last_message_recived;
         unsigned int last_message_sent;
+        unsigned int last_sequence_number;
+        unsigned int remote_sequence_number;
+        unsigned int ack_field;
     
     friend class Network;
     };

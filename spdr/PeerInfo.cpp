@@ -6,10 +6,12 @@
 namespace spdr
 {
     PeerInfo::PeerInfo()
-    : connected(false), disconnecting(false), last_message_recived(0), last_message_sent(0) {}
+    : connected(false), disconnecting(false), last_message_recived(0), last_message_sent(0),
+      last_sequence_number(0), remote_sequence_number(0)  {}
 
     PeerInfo::PeerInfo(const Address& a, unsigned int now)
-    : address(a), last_message_recived(now), last_message_sent(0) {}
+    : address(a), last_message_recived(now), last_message_sent(0),
+      last_sequence_number(0), remote_sequence_number(0) {}
     
     const Address& PeerInfo::get_address() const
     {

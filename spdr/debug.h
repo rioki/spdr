@@ -11,7 +11,7 @@ namespace spdr
 
 #define TRACE(MSG, ...) ::spdr::trace(MSG, __VA_ARGS__) 
 #else
-#define TRACE(MSG, ...)
+#define TRACE(MSG, ...) do {} while(false)
 #endif 
 
 #endif
