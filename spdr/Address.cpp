@@ -4,9 +4,29 @@
 #include "Address.h"
 
 #include <iostream>
+#include <stdexcept>
 
 namespace spdr
 {       
+    Address Address::resolve(const std::string& host, unsigned short port)
+    {
+        hostent* h = gethostbyname(host.c_str());
+        if (h == NULL) 
+        {
+            throw std::runtime_error("Failed to resolve host.");
+        }
+        if (h->h_addrtype != AF_INET) 
+        {
+            throw std::runtime_error("Bad address type.");
+        }
+        sockaddr_in addr;
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = *reinterpret_cast<u_long*>(h->h_addr_list[0]);
+        addr.sin_port = htons(port);
+        
+        return Address(addr);
+    }
+
     Address::Address() 
     {
         c_obj.sin_family = AF_INET;

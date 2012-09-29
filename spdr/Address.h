@@ -23,6 +23,8 @@ namespace spdr
     {
     public:
     
+        static Address resolve(const std::string& host, unsigned short port);
+    
         /**
          * Default Constructor
          **/

@@ -132,14 +132,21 @@ namespace spdr
     {        
         while (running)
         {
-            for (unsigned int i = 0; i < 10; i++)
+            try
             {
-                do_send();
-                do_recive();
+                for (unsigned int i = 0; i < 10; i++)
+                {
+                    do_send();
+                    do_recive();
+                }
+                do_keep_alive();
+                do_timeout();
+                do_reliable_messages();
             }
-            do_keep_alive();
-            do_timeout();
-            do_reliable_messages();
+            catch (std::exception& ex)
+            {
+                TRACE("ERROR: %s", ex.what());
+            }
         }
     }
     
