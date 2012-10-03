@@ -26,13 +26,13 @@ SUITE(NetworkTest)
     struct ConnectTimeoutFixture
     {
         unsigned int node_disconnect_count;
-        spdr::PeerInfo node_disconnect_info;
+        spdr::PeerInfoPtr node_disconnect_info;
         c9y::Condition disconnect_cond;
         
         ConnectTimeoutFixture()
         : node_disconnect_count(0) {}
         
-        void on_node_disconnect(spdr::PeerInfo info)
+        void on_node_disconnect(spdr::PeerInfoPtr info)
         {
             node_disconnect_count++;
             node_disconnect_info = info;
@@ -74,24 +74,24 @@ SUITE(NetworkTest)
             client_disconnected_count = 0;
         }
         
-        void on_server_connected(spdr::PeerInfo info)
+        void on_server_connected(spdr::PeerInfoPtr info)
         {
             server_connected_count++;
         }
         
-        void on_client_connected(spdr::PeerInfo info)
+        void on_client_connected(spdr::PeerInfoPtr info)
         {
             client_connected_count++;
             client_connect_cond.signal();
         }
         
-        void on_client_disconnected(spdr::PeerInfo info)
+        void on_client_disconnected(spdr::PeerInfoPtr info)
         {
             client_disconnected_count++;
             client_connect_cond.signal();            
         }
         
-        void on_server_disconnected(spdr::PeerInfo info)
+        void on_server_disconnected(spdr::PeerInfoPtr info)
         {
             server_disconnected_count++;
             client_connect_cond.signal();            
@@ -214,7 +214,7 @@ SUITE(NetworkTest)
         }
         
         
-        void handle_server_message(spdr::PeerInfo info, spdr::Message& message)
+        void handle_server_message(spdr::PeerInfoPtr info, spdr::Message& message)
         {
             server_message_count++;
             if (message.get_id() == TEST_MESSAGE_ID)
@@ -227,7 +227,7 @@ SUITE(NetworkTest)
             }
         }
         
-        void handle_client_message(spdr::PeerInfo info, spdr::Message& message)
+        void handle_client_message(spdr::PeerInfoPtr info, spdr::Message& message)
         {
             client_message_count++;
             if (message.get_id() == TEST_MESSAGE_ID)
@@ -239,7 +239,7 @@ SUITE(NetworkTest)
             }
         }
         
-        void handle_client_dissconnect(spdr::PeerInfo info)
+        void handle_client_dissconnect(spdr::PeerInfoPtr info)
         {
             // we just got let off the hock, abort the test.
             awnser_cond.signal();
@@ -262,7 +262,7 @@ SUITE(NetworkTest)
         client.get_disconnect_signal().connect(sigc::mem_fun(this, &SendMessageFixture::handle_client_dissconnect));
         
                 
-        spdr::PeerInfo info = client.connect(spdr::Address(127, 0, 0, 1, BASE_PORT + 3));
+        spdr::PeerInfoPtr info = client.connect(spdr::Address(127, 0, 0, 1, BASE_PORT + 3));
         client.send(info, TestMessage(0, "To the batmobile!"));
                 
         wait_awnser();

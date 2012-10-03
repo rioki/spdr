@@ -144,7 +144,7 @@ SUITE(FlowControlTest)
             }
         }
         
-        void recive_message(spdr::PeerInfo peer, spdr::Message& message)
+        void recive_message(spdr::PeerInfoPtr peer, spdr::Message& message)
         {
             if (message.get_id() == TEST_MESSAGE_ID)
             {
@@ -171,7 +171,7 @@ SUITE(FlowControlTest)
         spdr::Network client(PROTOCOL_ID);
         client.register_message<TestMessage>(TEST_MESSAGE_ID);        
         spdr::Address server_adr(127, 0, 0, 1, BASE_PORT);
-        spdr::PeerInfo info = client.connect(server_adr);
+        spdr::PeerInfoPtr info = client.connect(server_adr);
                 
         client.send(info, TestMessage(1, "One"));
         client.send(info, TestMessage(2, "Two"));

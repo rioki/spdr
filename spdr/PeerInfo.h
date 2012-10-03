@@ -4,6 +4,7 @@
 #ifndef _SPDR_NODE_INFO_H_
 #define _SPDR_NODE_INFO_H_
 
+#include <memory>
 #include "Address.h"
 
 namespace spdr
@@ -31,6 +32,8 @@ namespace spdr
     
     friend class Network;
     };
+    
+    typedef std::shared_ptr<PeerInfo> PeerInfoPtr;
 }
 
 #endif

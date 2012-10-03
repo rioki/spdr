@@ -20,7 +20,7 @@ namespace spdr
         info_with_address(const Address& a)
         : address(a) {}
         
-        bool operator () (PeerInfo* info)
+        bool operator () (PeerInfoPtr info)
         {
             return info->get_address() == address;
         }
@@ -33,7 +33,7 @@ namespace spdr
         message_with_sequence_number(unsigned int sn)
         : sequence_number(sn) {}
         
-        bool operator () (const std::tuple<PeerInfo, Message*>& obj)
+        bool operator () (const std::tuple<PeerInfoPtr, Message*>& obj)
         {
             return std::get<1>(obj)->get_sequence_number() == sequence_number;
         }
@@ -62,12 +62,7 @@ namespace spdr
         try
         {
             running = false;
-            worker.join();                        
-            
-            for (PeerInfo* peer : peers)
-            {
-                delete peer;
-            }
+            worker.join();
             peers.clear();
         }
         catch (std::exception& ex)
@@ -81,16 +76,15 @@ namespace spdr
         return protocol_id;
     }
     
-    PeerInfo Network::connect(Address address)
+    PeerInfoPtr Network::connect(Address address)
     {
         // NOTE: 
         // The connection is initiated by a keep alive. Here we just create 
-        // a PeerInfo and the normal keep alive will initiate the comunication.
+        // a PeerInfoPtr and the normal keep alive will initiate the comunication.
         
         TRACE("Connecting to %d.%d.%d.%d:%d.", address.get_a(), address.get_b(), address.get_c(), address.get_d(), address.get_port());
         
-        PeerInfo* peer = get_info(address);
-        return *peer;
+        return get_info(address);
     }
     
     void Network::disconnect(Address address)
@@ -99,7 +93,7 @@ namespace spdr
         
         TRACE("Disconnecting from %d.%d.%d.%d:%d.", address.get_a(), address.get_b(), address.get_c(), address.get_d(), address.get_port());
         
-        PeerInfo* peer = get_info(address, false);
+        PeerInfoPtr peer = get_info(address, false);
         if (peer != NULL && peer->connected)
         {
             peer->connected = false;
@@ -108,17 +102,17 @@ namespace spdr
         }
     }
     
-    sigc::signal<void, PeerInfo>& Network::get_connect_signal()
+    sigc::signal<void, PeerInfoPtr>& Network::get_connect_signal()
     {
         return connect_signal;
     }
     
-    sigc::signal<void, PeerInfo>& Network::get_disconnect_signal()
+    sigc::signal<void, PeerInfoPtr>& Network::get_disconnect_signal()
     {
         return disconnect_signal;
     }
     
-    sigc::signal<void, PeerInfo, Message&>& Network::get_message_signal()
+    sigc::signal<void, PeerInfoPtr, Message&>& Network::get_message_signal()
     {
         return message_signal;
     }
@@ -152,7 +146,7 @@ namespace spdr
     
     void Network::do_send()
     {        
-        PeerInfo info;
+        PeerInfoPtr info;
         Message* message;
         {
             c9y::Lock<c9y::Mutex> lock(send_queue_mutex);
@@ -171,11 +165,11 @@ namespace spdr
         {
             c9y::Lock<c9y::Mutex> lock(peers_mutex);
                 
-            PeerInfo* peer = get_info(info.get_address(), false);
-            if (peer == NULL)
+            PeerInfoPtr peer = get_info(info->get_address(), false);
+            if (! peer)
             {
                 delete message;
-                return; // we are not connected to the peer anyore
+                return; // we are not connected to the peer anymore
             }
             peer->last_message_sent = std::clock(); 
             message->sequence_number = peer->last_sequence_number++;
@@ -183,7 +177,7 @@ namespace spdr
             ack_field = peer->ack_field;
         }
         
-        TRACE("Sending Message type %d number %d to %d.%d.%d.%d:%d.", message->get_id(), message->sequence_number, info.get_address().get_a(), info.get_address().get_b(), info.get_address().get_c(), info.get_address().get_d(), info.get_address().get_port());
+        TRACE("Sending Message type %d number %d to %d.%d.%d.%d:%d.", message->get_id(), message->sequence_number, info->get_address().get_a(), info->get_address().get_b(), info->get_address().get_c(), info->get_address().get_d(), info->get_address().get_port());
         
         // REVIEW: Should we check here if the node info still is valid?
         std::stringstream buff;
@@ -194,7 +188,7 @@ namespace spdr
         pack(buff, ack_field);
         message->pack(buff);
         
-        socket.send(info.get_address(), buff.str());
+        socket.send(info->get_address(), buff.str());
         message->sent_time = std::clock();
         
         {
@@ -225,12 +219,12 @@ namespace spdr
             return;
         }
         
-        PeerInfo* peer = get_info(address);
+        PeerInfoPtr peer = get_info(address);
         if (peer->connected == false && peer->disconnecting == false)
         {
             TRACE("Connected to %d.%d.%d.%d:%d.", address.get_a(), address.get_b(), address.get_c(), address.get_d(), address.get_port());            
             peer->connected = true;
-            connect_signal.emit(*peer);
+            connect_signal.emit(peer);
         }        
         peer->last_message_recived = std::clock();
         
@@ -257,13 +251,13 @@ namespace spdr
         
         if (message_id != KEEP_ALIVE_MESSAGE)
         {            
-            message_signal.emit(*peer, *message);
+            message_signal.emit(peer, *message);
         }        
         
         delete message;
     }
     
-    void Network::handle_incomming_acks(PeerInfo* peer, unsigned int sequence_number, unsigned int last_ack, unsigned int ack_field)
+    void Network::handle_incomming_acks(PeerInfoPtr peer, unsigned int sequence_number, unsigned int last_ack, unsigned int ack_field)
     {
         static unsigned int ack_count = sizeof(unsigned int) * 8;
         
@@ -309,12 +303,12 @@ namespace spdr
         c9y::Lock<c9y::Mutex> lock(peers_mutex);
         unsigned int now = std::clock();
 
-        std::list<PeerInfo*>::iterator iter = peers.begin();
+        std::list<PeerInfoPtr>::iterator iter = peers.begin();
         while (iter != peers.end())
         {
             if ((*iter)->connected && (now - (*iter)->last_message_sent) > (CLOCKS_PER_SEC / 4))
-            {
-                send(**iter, KeepAliveMessage());
+            {                
+                send(*iter, KeepAliveMessage());
                 (*iter)->last_message_sent = now;
             }
             ++iter;
@@ -326,7 +320,7 @@ namespace spdr
         c9y::Lock<c9y::Mutex> lock(peers_mutex);
         unsigned int now = std::clock();
         
-        std::list<PeerInfo*>::iterator iter = peers.begin();
+        std::list<PeerInfoPtr>::iterator iter = peers.begin();
         while (iter != peers.end())
         {
             unsigned int timeout = (*iter)->disconnecting ? (3 * CLOCKS_PER_SEC) : (2 * CLOCKS_PER_SEC);
@@ -335,8 +329,7 @@ namespace spdr
             {
                 TRACE("Disconnected from %d.%d.%d.%d:%d.", (*iter)->address.get_a(), (*iter)->address.get_b(), (*iter)->address.get_c(), (*iter)->address.get_d(), (*iter)->address.get_port());
                 
-                disconnect_signal.emit(**iter);
-                delete *iter;
+                disconnect_signal.emit(*iter);
                 iter = peers.erase(iter);
             }
             else
@@ -356,21 +349,21 @@ namespace spdr
         {
             unsigned int timeout = 1 * CLOCKS_PER_SEC;
             
-            PeerInfo peer = std::get<0>(*iter);
+            PeerInfoPtr peer = std::get<0>(*iter);
             Message* message = std::get<1>(*iter);
             if ((now - message->sent_time) > timeout)
             {
                 iter = sent_messages.erase(iter);
                 if (message->is_reliable())
                 {
-                    TRACE("Message type %d number %d to %d.%d.%d.%d:%d timed out, resending.", message->get_id(), message->sequence_number, peer.address.get_a(), peer.address.get_b(), peer.address.get_c(), peer.address.get_d(), peer.address.get_port());
+                    TRACE("Message type %d number %d to %d.%d.%d.%d:%d timed out, resending.", message->get_id(), message->sequence_number, peer->address.get_a(), peer->address.get_b(), peer->address.get_c(), peer->address.get_d(), peer->address.get_port());
                     
                     c9y::Lock<c9y::Mutex> lock(send_queue_mutex);
                     send_queue.push(std::make_tuple(peer, message));
                 }
                 else
                 {
-                    TRACE("Message type %d number %d to %d.%d.%d.%d:%d timed out.", message->get_id(), message->sequence_number, peer.address.get_a(), peer.address.get_b(), peer.address.get_c(), peer.address.get_d(), peer.address.get_port());
+                    TRACE("Message type %d number %d to %d.%d.%d.%d:%d timed out.", message->get_id(), message->sequence_number, peer->address.get_a(), peer->address.get_b(), peer->address.get_c(), peer->address.get_d(), peer->address.get_port());
                     delete message;
                 }                
             }
@@ -382,9 +375,9 @@ namespace spdr
         
     }
     
-    PeerInfo* Network::get_info(const Address& address, bool create) 
+    PeerInfoPtr Network::get_info(const Address& address, bool create) 
     {
-        std::list<PeerInfo*>::iterator iter;
+        std::list<PeerInfoPtr>::iterator iter;
         iter = std::find_if(peers.begin(), peers.end(), info_with_address(address));
         if (iter != peers.end())
         {
@@ -394,13 +387,13 @@ namespace spdr
         {
             if (create)
             {                
-                PeerInfo* info = new PeerInfo(address, std::clock());        
+                PeerInfoPtr info(new PeerInfo(address, std::clock()));        
                 peers.push_back(info);                
                 return info;
             }
             else
             {
-                return NULL;
+                return PeerInfoPtr();
             }
         }
     }
