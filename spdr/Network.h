@@ -43,7 +43,7 @@ namespace spdr
         /**
          * Create a client network node.
          **/
-        Network(unsigned int protocol_id);
+        explicit Network(unsigned int protocol_id);
         
         /**
          * Create a server network node.
