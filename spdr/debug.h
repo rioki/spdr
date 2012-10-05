@@ -2,7 +2,6 @@
 #ifndef _SPDR_DEBUG_H_
 #define _SPDR_DEBUG_H_
 
-#define DEBUG
 #ifdef DEBUG
 
 namespace spdr
