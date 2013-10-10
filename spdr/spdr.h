@@ -4,9 +4,7 @@
 #ifndef _SPDR_H_
 #define _SPDR_H_
 
-#include "Network.h"
-#include "Address.h"
+#include "Peer.h"
 #include "Node.h"
-#include "Message.h"
 
 #endif

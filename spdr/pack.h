@@ -1,41 +1,11 @@
-// spdr - easy networking
-// Copyright 2011-2012 Sean Farrell
 
-#ifndef _SPDR_MESSAGE_H_
-#define _SPDR_MESSAGE_H_
+#ifndef _SPDR_PACK_H_
+#define _SPDR_PACK_H_
 
 #include <iosfwd>
 
 namespace spdr
-{
-    /**
-     * Message
-     **/
-    class Message
-    {
-    public:
-    
-        Message();
-        
-        virtual ~Message();
-        
-        virtual unsigned int get_id() const = 0;
-        
-        virtual bool is_reliable() const = 0;
-        
-        unsigned int get_sequence_number() const;
-        
-        virtual void pack(std::ostream& os) const = 0;
-        
-        virtual void unpack(std::istream& is) = 0;
-        
-    private:
-        unsigned int sequence_number;
-        unsigned int sent_time;
-        
-    friend class Network;
-    };
-    
+{    
     void pack(std::ostream& os, bool value);
     void pack(std::ostream& os, char value);
     void pack(std::ostream& os, unsigned char value);
@@ -49,7 +19,8 @@ namespace spdr
     void pack(std::ostream& os, unsigned long long value);    
     void pack(std::ostream& os, float value);
     void pack(std::ostream& os, double value);
-    void pack(std::ostream& os, const std::string& value);    
+    void pack(std::ostream& os, const char* value);
+    void pack(std::ostream& os, const std::string& value);
     
     void unpack(std::istream& is, bool& value);
     void unpack(std::istream& is, char& value);

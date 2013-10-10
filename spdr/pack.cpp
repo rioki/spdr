@@ -1,22 +1,11 @@
-// spdr - easy networking
-// Copyright 2011-2012 Sean Farrell
 
-#include "Message.h"
+#include "pack.h"
 
 #include <iostream>
+#include <cstring>
 
 namespace spdr
 {
-    Message::Message()
-    : sequence_number(0), sent_time(0) {}
-    
-    Message::~Message() {}
-
-    unsigned int Message::get_sequence_number() const
-    {
-        return sequence_number;
-    }    
-    
     void pack(std::ostream& os, bool value)
     {
         os.write(reinterpret_cast<const char*>(&value), sizeof(value));
@@ -82,6 +71,16 @@ namespace spdr
         os.write(reinterpret_cast<const char*>(&value), sizeof(value));
     }
     
+    void pack(std::ostream& os, const char* value)
+    {
+        unsigned int size = strlen(value);
+        pack(os, size);
+        if (size != 0)
+        {
+            os.write(value, size * sizeof(char));
+        }
+    }
+    
     void pack(std::ostream& os, const std::string& value)
     {
         unsigned int size = value.size();
@@ -91,7 +90,6 @@ namespace spdr
             os.write(&value[0], size * sizeof(char));
         }
     }
-    
     
     void unpack(std::istream& is, bool& value)
     {

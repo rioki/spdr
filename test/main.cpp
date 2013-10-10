@@ -1,9 +1,9 @@
 // spdr - easy networking
 // Copyright 2011-2012 Sean Farrell
 
-#include <UnitTest++/UnitTest++.h>
+#include <rtest.h>
 
 int main()
 {
-	return UnitTest::RunAllTests();
+	return rtest::run();
 }

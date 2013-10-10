@@ -1,7 +1,10 @@
-VERSION   = 0.0.0
+
+VERSION   = 0.1.0
 CXX       = g++ -std=c++0x
-CXXFLAGS += -g -Wall -DVERSION=\"$(VERSION)\" -Ispdr
 prefix   ?= /usr/local/
+
+C9Y_CFLAGS := $(shell pkg-config c9y --cflags)
+C9Y_LIBS   := $(shell pkg-config c9y --libs)
 
 ifeq ($(MSYSTEM), MINGW32)
   EXEEXT  = .exe  
@@ -11,20 +14,37 @@ else
   LIBEXT  = .so  
 endif
 
-spdr_headers = $(wildcard spdr/*.h)
-spdr_src     = $(wildcard spdr/*.cpp)
-spdr_libs    = -lsigc-2.0 -lc9y -lwsock32
-test_src     = $(wildcard test/*.cpp)
-test_libs    = -lUnitTest++ -lsigc-2.0 -lc9y
-dist_files   = $(spdr_headers) $(spdr_src) $(test_src) Makefile README.md
+CXXFLAGS        += -g -Wall -DVERSION=\"$(VERSION)\" -I. $(C9Y_CFLAGS)
+
+inst_HEADERS   := spdr/spdr.h spdr/Node.h spdr/Peer.h spdr/pack.h
+noinst_HEADERS := 
+spdr_SOURCES   := spdr/Node.cpp spdr/Peer.cpp spdr/pack.cpp
+spdr_LDADD     := $(C9Y_LIBS)
+
+
+test_SOURCES   := test/main.cpp
+test_LDADD     := libspdr.a -lrtest
+
+
+noinst_HEADERS      += examples/chat/defines.h
+char_server_SOURCES := examples/chat/server.cpp
+char_server_LDADD   := 
+char_client_SOURCES := examples/chat/client.cpp
+char_client_LDADD   := 
+
+
+
+extadist_FILES := Makefile README.md
 
 .PHONY: all clean check install uninstall dist
 .SUFFIXES: .o .cpp
 
 all: spdr$(LIBEXT)
 
-spdr$(LIBEXT): $(patsubst %.cpp, %.o, $(spdr_src))
-	$(CXX) -shared -fPIC $(CXXFLAGS) $(LDFLAGS) $^ $(spdr_libs) -Wl,--out-implib=$(patsubst %$(LIBEXT),lib%.a, $@) -o $@
+spdr$(LIBEXT): $(patsubst %.cpp, %.o, $(spdr_SOURCES))
+	$(CXX) -shared -fPIC $(CXXFLAGS) $(LDFLAGS) $^ $(spdr_LDADD) -Wl,--out-implib,libspdr.a -o $@
+	
+libspdr.a: spdr$(LIBEXT)
 
 clean:
 	rm -f */*.o */*.d *$(LIBEXT) *.a test$(EXEEXT)
@@ -32,15 +52,23 @@ clean:
 check: test$(EXEEXT)
 	./test$(EXEEXT)
 
-test$(EXEEXT): spdr$(LIBEXT) $(patsubst %.cpp, %.o, $(test_src))
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $^ $(test_libs) -o $@
+test$(EXEEXT): $(patsubst %.cpp, %.o, $(test_SOURCES)) libspdr.a
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $^ $(test_LDADD) -o $@
 
+examples: chat-server$(EXEEXT) chat-client$(EXEEXT)
+	
+chat-server$(EXEEXT): $(patsubst %.cpp, %.o, $(char_server_SOURCES)) libspdr.a
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $^ $(char_server_LDADD) -o $@	
+	
+chat-client$(EXEEXT): $(patsubst %.cpp, %.o, $(char_client_SOURCES)) libspdr.a
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $^ $(char_client_LDADD) -o $@	
+	
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) -MD -c $< -o $(patsubst %.cpp, %.o, $<)
 
 install: all
 	mkdir -p $(prefix)include/spdr/
-	cp spdr/*.h $(prefix)include/spdr
+	cp $(inst_HEADERS) $(prefix)include/spdr
 	mkdir -p $(prefix)bin
 	cp spdr$(LIBEXT) $(prefix)bin/
 	mkdir -p $(prefix)lib
@@ -51,14 +79,19 @@ uninstall:
 	rm -rf $(prefix)bin/spdr$(LIBEXT)
 	rm -rf $(prefix)lib/libspdr.a
 
+dist_FILES := $(inst_HEADERS) $(spdr_SOURCES) $(test_SOURCES) $(extadist_FILES) \
+			  $(char_server_SOURCES) $(char_client_SOURCES) $(noinst_HEADERS)
+	
 dist:
 	mkdir spdr-$(VERSION)
-	cp --parents $(dist_files) spdr-$(VERSION)/
+	cp --parents $(dist_FILES) spdr-$(VERSION)/
 	tar -czvf spdr-$(VERSION).tar.gz spdr-$(VERSION)
 	rm -rf spdr-$(VERSION)
 
 ifneq "$(MAKECMDGOALS)" "clean"
-deps  = $(patsubst %.cpp, %.d, $(spdr_src))
-deps += $(patsubst %.cpp, %.d, $(test_src))
+deps  = $(patsubst %.cpp, %.d, $(spdr_SOURCES))
+deps += $(patsubst %.cpp, %.d, $(test_SOURCES))
+deps += $(patsubst %.cpp, %.d, $(char_server_SOURCES))
+deps += $(patsubst %.cpp, %.d, $(char_client_SOURCES))
 -include $(deps)
 endif
