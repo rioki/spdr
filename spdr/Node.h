@@ -5,6 +5,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <list>
 #include <map>
 #include <iosfwd>
 
@@ -17,6 +18,7 @@ namespace c9y
     class UdpSocket;
     class EventLoop;
     class Thread;
+    class Timer;
 }
 
 namespace spdr
@@ -33,13 +35,13 @@ namespace spdr
          * @param id the protocol id
          * @param version the protocol version
          **/
-        Node(unsigned char id, unsigned char version);
+        Node(unsigned int id, unsigned int version);
         
         ~Node();
         
-        unsigned char get_id() const;   
+        unsigned int get_id() const;   
         
-        unsigned char get_version() const;
+        unsigned int get_version() const;
         
         void listen(unsigned short port, std::function<void (Peer*)> connect_cb, std::function<void (Peer*)> disconnect_cb);
         
@@ -53,25 +55,21 @@ namespace spdr
         template <typename T0, typename T1>
         void on_message(unsigned short id, std::function<void (Peer*, T0, T1)> cb);
         
-        void send(Peer* peer, unsigned char message);
+        void send(Peer* peer, unsigned int message);
         
         template <typename T0>
-        void send(Peer* peer, unsigned char message, T0 v0);
+        void send(Peer* peer, unsigned int message, T0 v0);
         
         template <typename T0, typename T1>
-        void send(Peer* peer, unsigned char message, T0 v0, T1 v1);
-        
-        void generic_send(Peer* peer, unsigned char message, std::function<void (std::ostream&)> pack_data);
-        
-        void broadcast(unsigned char message);
+        void send(Peer* peer, unsigned int message, T0 v0, T1 v1);
+
+        void broadcast(unsigned int message);
         
         template <typename T0>
-        void broadcast(unsigned char message, T0 v0);
+        void broadcast(unsigned int message, T0 v0);
         
         template <typename T0, typename T1>
-        void broadcast(unsigned char message, T0 v0, T1 v1);
-        
-        void generic_broadcast(unsigned char message, std::function<void (std::ostream&)> pack_data);
+        void broadcast(unsigned int message, T0 v0, T1 v1);               
         
         /**
          * Execute the network code in this thread.         
@@ -87,19 +85,36 @@ namespace spdr
         
     
     private:
-        unsigned char id;
-        unsigned char version;
+        unsigned int id;
+        unsigned int version;
         c9y::EventLoop* loop;
         c9y::UdpSocket* socket;
         c9y::Thread*    worker;
+        c9y::Timer*     timer;
         std::function<void (Peer*)> connect_cb;
         std::function<void (Peer*)> disconnect_cb;        
         
         std::vector<Peer*> peers;
         std::map<unsigned int, std::function<void (Peer*, std::istream&)>> messages;
         
-        void handle_message(const c9y::IpAddress& address, const char* data, size_t len);
-        std::string build_message(unsigned char message, std::function<void (std::ostream&)> pack_data);
+        struct Message
+        {
+            Peer*        peer;
+            clock_t      time;
+            unsigned int number;
+            std::string  data;
+        };
+        std::list<Message*> sent_messages; // messages without an ack
+        
+        void handle_message(const c9y::IpAddress& address, const char* data, size_t len);        
+        void handle_incomming_acks(Peer* peer, unsigned int sequence_number, unsigned int last_ack, unsigned int ack_field);
+        
+        void do_send(Peer* peer, unsigned int message, std::function<void (std::ostream&)> pack_data);
+        void do_broadcast(unsigned int message, std::function<void (std::ostream&)> pack_data);
+        
+        void do_keep_alive();
+        void do_timeout();
+        void do_reliable_messages();
         
         Node(const Node&);
         const Node& operator = (const Node&);
@@ -130,34 +145,34 @@ namespace spdr
     }
     
     template <typename T0>
-    void Node::send(Peer* peer, unsigned char message, T0 v0)
+    void Node::send(Peer* peer, unsigned int message, T0 v0)
     {
-        generic_send(peer, message, [&] (std::ostream& os) {
+        do_send(peer, message, [&] (std::ostream& os) {
             pack(os, v0);
         });
     }
     
     template <typename T0, typename T1>
-    void Node::send(Peer* peer, unsigned char message, T0 v0, T1 v1)
+    void Node::send(Peer* peer, unsigned int message, T0 v0, T1 v1)
     {
-        generic_send(peer, message, [&] (std::ostream& os) {
+        do_send(peer, message, [&] (std::ostream& os) {
             pack(os, v0);
             pack(os, v1);
         });
     }
     
     template <typename T0>
-    void Node::broadcast(unsigned char message, T0 v0)
+    void Node::broadcast(unsigned int message, T0 v0)
     {
-        generic_broadcast(message, [&] (std::ostream& os) {
+        do_broadcast(message, [&] (std::ostream& os) {
             pack(os, v0);
         });
     }
 
     template <typename T0, typename T1>
-    void Node::broadcast(unsigned char message, T0 v0, T1 v1)
+    void Node::broadcast(unsigned int message, T0 v0, T1 v1)
     {
-        generic_broadcast(message, [&] (std::ostream& os) {
+        do_broadcast(message, [&] (std::ostream& os) {
             pack(os, v0);
             pack(os, v1);
         });

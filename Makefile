@@ -47,7 +47,7 @@ spdr$(LIBEXT): $(patsubst %.cpp, %.o, $(spdr_SOURCES))
 libspdr.a: spdr$(LIBEXT)
 
 clean:
-	rm -f */*.o */*.d *$(LIBEXT) *.a test$(EXEEXT)
+	rm -f */*.o */*.d */*/*.o */*/*.d *$(LIBEXT) *.a test$(EXEEXT)
 
 check: test$(EXEEXT)
 	./test$(EXEEXT)
