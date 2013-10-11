@@ -1,6 +1,7 @@
 
 #include "Node.h"
 
+#include <cassert>
 #include <iostream>
 #include <sstream>
 #include <algorithm>
@@ -18,19 +19,20 @@ namespace spdr
     };
 
     Node::Node(unsigned char pi, unsigned char pv)
-    : id(pi), version(pv), socket(NULL), timer(NULL)
+    : id(pi), version(pv), loop(NULL), socket(NULL), worker(NULL)
     {
-        socket = new c9y::UdpSocket;
-        
-        /*timer = new c9y::Timer(100, [this] () {
-            // do managment stuff
-        });*/
+        loop = new c9y::EventLoop;    
+        socket = new c9y::UdpSocket(*loop);        
     }
     
     Node::~Node()
-    {
-        delete timer;
+    {        
+        stop(); // this can happen when node is running multithreaded
+    
+        assert(worker == NULL);
+    
         delete socket;
+        delete loop;
     }
     
     unsigned char Node::get_id() const
@@ -111,12 +113,27 @@ namespace spdr
     
     void Node::run()
     {
-        c9y::run();
+        loop->run();
+    }
+    
+    void Node::start()
+    {
+        assert(worker == NULL);
+        
+        worker = new c9y::Thread([this] () {
+            run();
+        });
     }
         
     void Node::stop()
     {
-        c9y::stop();
+        loop->stop();
+        if (worker)
+        {
+            worker->join();
+            delete worker;
+            worker = NULL;
+        }
     }
     
     void Node::handle_message(const c9y::IpAddress& address, const char* data, size_t len)

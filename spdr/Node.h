@@ -15,7 +15,8 @@ namespace c9y
 {
     class IpAddress;
     class UdpSocket;
-    class Timer;
+    class EventLoop;
+    class Thread;
 }
 
 namespace spdr
@@ -72,15 +73,25 @@ namespace spdr
         
         void generic_broadcast(unsigned char message, std::function<void (std::ostream&)> pack_data);
         
+        /**
+         * Execute the network code in this thread.         
+         **/
         void run();
         
+        /**
+         * Execute the network code in a seperate thread.
+         **/
+        void start();
+        
         void stop();
+        
     
     private:
         unsigned char id;
         unsigned char version;
+        c9y::EventLoop* loop;
         c9y::UdpSocket* socket;
-        c9y::Timer*     timer;
+        c9y::Thread*    worker;
         std::function<void (Peer*)> connect_cb;
         std::function<void (Peer*)> disconnect_cb;        
         
