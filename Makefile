@@ -66,6 +66,8 @@ chat-client$(EXEEXT): $(patsubst %.cpp, %.o, $(char_client_SOURCES)) libspdr.a
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) -MD -c $< -o $(patsubst %.cpp, %.o, $<)
 
+cprefix := $(shell echo $(prefix) | sed -e "s/\//\\\\\\//g")	
+	
 install: all
 	mkdir -p $(prefix)include/spdr/
 	cp $(inst_HEADERS) $(prefix)include/spdr
@@ -73,6 +75,7 @@ install: all
 	cp spdr$(LIBEXT) $(prefix)bin/
 	mkdir -p $(prefix)lib
 	cp libspdr.a $(prefix)lib/
+	cat spdr.pc.in | sed -e "s/%prefix%/$(cprefix)/g" -e "s/%VERSION%/$(VERSION)/g" > $(prefix)/lib/pkgconfig/spdr.pc
 
 uninstall:
 	rm -rf $(prefix)include/spdr
