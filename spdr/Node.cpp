@@ -17,7 +17,7 @@
 #define TIMEOUT_THRESHOLD     (2 * CLOCKS_PER_SEC)
 #define RESEND_THRESHOLD      (1 * CLOCKS_PER_SEC)       
 
-#if DEBUG
+#ifdef DEBUG
 #define TRACE(MSG) std::cout << std::clock() << " " <<  __FILE__ << "(" << __LINE__ << "): " << MSG << std::endl
 #else
 #define TRACE(MSG)
@@ -27,27 +27,16 @@
 namespace spdr
 {
     Node::Node(unsigned int pi, unsigned int pv)
-    : id(pi), version(pv), loop(NULL), socket(NULL), worker(NULL)
+    : id(pi), version(pv), socket(NULL), interval(NULL)
     {
-        loop = new c9y::EventLoop;    
-        socket = new c9y::UdpSocket(*loop);    
-
-        timer = new c9y::Timer(*loop, 100, [this] () {
+        interval = c9y::set_interval(100, [this] () {
             do_keep_alive();
             do_timeout();
             do_reliable_messages();
         });
     }
     
-    Node::~Node()
-    {        
-        stop(); // this can happen when node is running multithreaded
-    
-        assert(worker == NULL);
-    
-        delete socket;
-        delete loop;
-    }
+    Node::~Node() {}
     
     unsigned int Node::get_id() const
     {
@@ -64,11 +53,10 @@ namespace spdr
         connect_cb    = ccb;
         disconnect_cb = dcb;
         
-        socket->bind(port);
-        socket->receive([this] (const c9y::IpAddress& address, const char* data, size_t len) 
-        {
+        socket = c9y::create_udp_socket([this] (const c9y::IpAddress& address, const char* data, size_t len) {
             handle_message(address, data, len);
         });
+        socket->bind(port);        
     }
         
     void Node::connect(const std::string& address, unsigned short port, std::function<void (Peer*)> ccb, std::function<void (Peer*)> dcb)
@@ -79,9 +67,7 @@ namespace spdr
         Peer* peer = new Peer(address, port, std::clock());
         peers.push_back(peer);
         
-        // first msg or keep alive will init the actual connection
-        socket->receive([this] (const c9y::IpAddress& address, const char* data, size_t len) 
-        {
+        socket = c9y::create_udp_socket([this] (const c9y::IpAddress& address, const char* data, size_t len) {
             handle_message(address, data, len);
         });
         
@@ -108,34 +94,29 @@ namespace spdr
     
     void Node::run()
     {
-        loop->run();
+        c9y::run();
     }
-    
-    void Node::start()
-    {
-        assert(worker == NULL);
-        
-        worker = new c9y::Thread([this] () {
-            run();
-        });
-    }
-        
+            
     void Node::stop()
     {
-        loop->stop();
-        if (worker)
+        if (interval != NULL)
         {
-            worker->join();
-            delete worker;
-            worker = NULL;
+            c9y::clear_interval(interval);
+            interval = NULL;
         }
+        
+        if (socket != NULL)
+        {
+            socket->close();
+            socket = NULL;        
+        }        
     }
     
     void Node::handle_message(const c9y::IpAddress& address, const char* data, size_t len)
     {
         auto pi = std::find_if(peers.begin(), peers.end(), [&] (Peer* peer) {
                 return peer->get_address() == address.get_ip() &&
-                       peer->get_port() == address.get_post(); // FIXME c9y name?!
+                       peer->get_port() == address.get_port();
         });
         
         std::stringstream buff(std::string(data, len));
@@ -160,7 +141,7 @@ namespace spdr
         Peer* peer = NULL;
         if (pi == peers.end()) // new connection
         {
-            peer = new Peer(address.get_ip(), address.get_post(), std::clock());
+            peer = new Peer(address.get_ip(), address.get_port(), std::clock());
             peers.push_back(peer);
             connect_cb(peer);            
         }
@@ -178,7 +159,7 @@ namespace spdr
         
         handle_incomming_acks(peer, sequence_number, last_ack, ack_field);
         
-        TRACE("Message " << message << " / " << sequence_number << " recived.");
+        TRACE("Message " << message << " / " << sequence_number << " from " << address.get_ip() << ":" << address.get_port() << " recived.");
         
         if (message != KEEP_ALIVE_MSG)
         {        
@@ -243,7 +224,7 @@ namespace spdr
         unsigned int last_ack = peer->remote_sequence_number;
         unsigned int ack_field = peer->ack_field;
         
-        TRACE("Sending message " << message << " / " << sequence_number << " .");
+        TRACE("Sending message " << message << " / " << sequence_number << " to " << peer->get_address() << ":" << peer->get_port() << ".");
         
         std::stringstream buff;
         pack(buff, id);
@@ -277,7 +258,7 @@ namespace spdr
         for (Peer* peer : peers)
         {
             // OK this is innefficient, but I currently don't have a 
-            // efficient was that also handles acks proeprly
+            // efficient way that also handles acks proeprly
             do_send(peer, message, pack_data);
         }
     }
@@ -300,25 +281,34 @@ namespace spdr
     {
         unsigned int now = std::clock();
         
-        auto i = std::remove_if(peers.begin(), peers.end(), [&] (Peer* peer) {
-            return (now - peer->last_message_recived) > TIMEOUT_THRESHOLD;
-        });
-        
-        std::for_each(i, peers.end(), [&] (Peer* peer) {
-            auto j = std::remove_if(sent_messages.begin(), sent_messages.end(), [&] (Message* message) {
-                return message->peer == peer;
-            });
-            TRACE("Erase " << std::distance(j, sent_messages.end()) << " pending messages.");
-            sent_messages.erase(j, sent_messages.end());            
-        });
-        
-        std::vector<Peer*> tmp(i, peers.end());                
-        peers.erase(i, peers.end());
-        
-        for (Peer* peer : tmp)
+        auto i = peers.begin();
+        while (i != peers.end())
         {
-            disconnect_cb(peer);
-            delete peer;
+            Peer* peer = *i;
+            if ((now - peer->last_message_recived) > TIMEOUT_THRESHOLD)
+            {
+                auto j = sent_messages.begin();
+                while (j != sent_messages.end())
+                {
+                    Message* message = *j;
+                    if (message->peer == peer)
+                    {
+                        j = sent_messages.erase(j);  
+                        delete message;
+                    }
+                    else
+                    {
+                        j++;
+                    }
+                }
+                                     
+                i = peers.erase(i);
+                delete peer;
+            }
+            else
+            {
+                i++;
+            }
         }
     }
     

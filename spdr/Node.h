@@ -16,9 +16,7 @@ namespace c9y
 {
     class IpAddress;
     class UdpSocket;
-    class EventLoop;
-    class Thread;
-    class Timer;
+    class Interval;
 }
 
 namespace spdr
@@ -76,21 +74,14 @@ namespace spdr
          **/
         void run();
         
-        /**
-         * Execute the network code in a seperate thread.
-         **/
-        void start();
-        
         void stop();
         
     
     private:
         unsigned int id;
         unsigned int version;
-        c9y::EventLoop* loop;
-        c9y::UdpSocket* socket;
-        c9y::Thread*    worker;
-        c9y::Timer*     timer;
+        c9y::UdpSocket* socket;        
+        c9y::Interval*  interval;
         std::function<void (Peer*)> connect_cb;
         std::function<void (Peer*)> disconnect_cb;        
         

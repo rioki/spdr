@@ -5,11 +5,12 @@
 #include <iomanip>
 #include <cstdio>
 #include <spdr/spdr.h>
+#include <c9y/c9y.h>
 
 int main(int argc, char* argv[])
 {
-    bool running = true;
     spdr::Peer* server = NULL;
+    bool running = true;
 
     if (argc != 3) 
     {
@@ -41,22 +42,25 @@ int main(int argc, char* argv[])
     {
         std::cout << "INFO: Disconnected from " << peer->get_address() << ":" << peer->get_port() << "." << std::endl;
         node.stop();
-        running = false;       
         server = NULL;
+        running = false;
     });
     
-    node.start();
-    
-    while (running)
-    {
-        std::string line;
-        std::getline(std::cin, line);
-        
-        if (server != NULL && ! line.empty())
+    // TODO get c9y to do async I/O
+    c9y::Thread* io = new c9y::Thread([&] () {
+        while (running)
         {
-            node.send(server, CHAT_MESSAGE, line);
+            std::string line;
+            std::getline(std::cin, line);
+            
+            if (server != NULL && ! line.empty())
+            {
+                node.send(server, CHAT_MESSAGE, line);
+            }
         }
-    }
+    });    
     
-    node.stop();
+    c9y::run();
+    
+    io->join();
 }
