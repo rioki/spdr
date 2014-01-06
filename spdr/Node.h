@@ -41,9 +41,13 @@ namespace spdr
         
         unsigned int get_version() const;
         
-        void listen(unsigned short port, std::function<void (Peer*)> connect_cb, std::function<void (Peer*)> disconnect_cb);
+        void listen(unsigned short port);
         
-        void connect(const std::string& address, unsigned short port, std::function<void (Peer*)> connect_cb, std::function<void (Peer*)> disconnect_cb);
+        void connect(const std::string& address, unsigned short port);
+        
+        void on_connect(std::function<void (Peer*)> cb);
+        
+        void on_disconnect(std::function<void (Peer*)> cb);
         
         void on_message(unsigned short id, std::function<void (Peer*)> cb);
         

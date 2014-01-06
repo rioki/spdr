@@ -48,22 +48,16 @@ namespace spdr
         return version;
     }
               
-    void Node::listen(unsigned short port, std::function<void (Peer*)> ccb, std::function<void (Peer*)> dcb)
+    void Node::listen(unsigned short port)
     {
-        connect_cb    = ccb;
-        disconnect_cb = dcb;
-        
         socket = c9y::create_udp_socket([this] (const c9y::IpAddress& address, const char* data, size_t len) {
             handle_message(address, data, len);
         });
         socket->bind(port);        
     }
         
-    void Node::connect(const std::string& address, unsigned short port, std::function<void (Peer*)> ccb, std::function<void (Peer*)> dcb)
+    void Node::connect(const std::string& address, unsigned short port)
     {
-        connect_cb    = ccb;
-        disconnect_cb = dcb;
-        
         Peer* peer = new Peer(address, port, std::clock());
         peers.push_back(peer);
         
@@ -72,6 +66,16 @@ namespace spdr
         });
         
         connect_cb(peer);
+    }
+    
+    void Node::on_connect(std::function<void (Peer*)> cb)
+    {
+        connect_cb = cb;
+    }
+        
+    void Node::on_disconnect(std::function<void (Peer*)> cb)
+    {
+        disconnect_cb = cb;
     }
     
     void Node::on_message(unsigned short id, std::function<void (Peer*)> cb)
