@@ -65,7 +65,10 @@ namespace spdr
             handle_message(address, data, len);
         });
         
-        connect_cb(peer);
+        if (connect_cb)
+        {
+            connect_cb(peer);
+        }
     }
     
     void Node::on_connect(std::function<void (Peer*)> cb)
@@ -147,7 +150,10 @@ namespace spdr
         {
             peer = new Peer(address.get_ip(), address.get_port(), std::clock());
             peers.push_back(peer);
-            connect_cb(peer);            
+            if (connect_cb)
+            {
+                connect_cb(peer);            
+            }
         }
         else
         {
@@ -304,6 +310,11 @@ namespace spdr
                     {
                         j++;
                     }
+                }
+                
+                if (disconnect_cb)
+                {
+                    disconnect_cb(*i);
                 }
                                      
                 i = peers.erase(i);
