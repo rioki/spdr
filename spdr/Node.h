@@ -43,7 +43,7 @@ namespace spdr
         
         void listen(unsigned short port);
         
-        void connect(const std::string& address, unsigned short port);
+        Peer* connect(const std::string& address, unsigned short port);
         
         void on_connect(std::function<void (Peer*)> cb);
         

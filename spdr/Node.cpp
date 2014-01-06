@@ -17,8 +17,19 @@
 #define TIMEOUT_THRESHOLD     (2 * CLOCKS_PER_SEC)
 #define RESEND_THRESHOLD      (1 * CLOCKS_PER_SEC)       
 
+//#define DEBUG
+//#define OUTPUT_DEBUG_STREAM
+
 #ifdef DEBUG
+#ifdef OUTPUT_DEBUG_STREAM
+#include <windows.h>
+#define TRACE(MSG) \
+    std::stringstream _msg; \
+    _msg << __FILE__ << "(" << __LINE__ << "): " << MSG; \
+    OutputDebugStringA(_msg.str().c_str())
+#else
 #define TRACE(MSG) std::cout << std::clock() << " " <<  __FILE__ << "(" << __LINE__ << "): " << MSG << std::endl
+#endif
 #else
 #define TRACE(MSG)
 #endif
@@ -36,7 +47,10 @@ namespace spdr
         });
     }
     
-    Node::~Node() {}
+    Node::~Node() 
+    {
+        stop();
+    }
     
     unsigned int Node::get_id() const
     {
@@ -50,25 +64,37 @@ namespace spdr
               
     void Node::listen(unsigned short port)
     {
-        socket = c9y::create_udp_socket([this] (const c9y::IpAddress& address, const char* data, size_t len) {
-            handle_message(address, data, len);
-        });
-        socket->bind(port);        
+        if (socket == NULL)
+        {
+            socket = c9y::create_udp_socket([this] (const c9y::IpAddress& address, const char* data, size_t len) {
+                handle_message(address, data, len);
+            });
+            socket->bind(port);
+        }
+        else
+        {
+            throw std::logic_error("Can not listen.");
+        }
     }
         
-    void Node::connect(const std::string& address, unsigned short port)
+    spdr::Peer* Node::connect(const std::string& address, unsigned short port)
     {
         Peer* peer = new Peer(address, port, std::clock());
         peers.push_back(peer);
         
-        socket = c9y::create_udp_socket([this] (const c9y::IpAddress& address, const char* data, size_t len) {
-            handle_message(address, data, len);
-        });
+        if (socket == NULL)
+        {
+            socket = c9y::create_udp_socket([this] (const c9y::IpAddress& address, const char* data, size_t len) {
+                handle_message(address, data, len);
+            });
+        }
         
         if (connect_cb)
         {
             connect_cb(peer);
         }
+        
+        return peer;
     }
     
     void Node::on_connect(std::function<void (Peer*)> cb)
@@ -312,6 +338,7 @@ namespace spdr
                     }
                 }
                 
+                TRACE(peer->get_address() << ":" << peer->get_port() << " was disconnected.");
                 if (disconnect_cb)
                 {
                     disconnect_cb(*i);
