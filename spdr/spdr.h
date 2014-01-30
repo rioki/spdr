@@ -4,7 +4,6 @@
 #ifndef _SPDR_H_
 #define _SPDR_H_
 
-#include "Peer.h"
 #include "Node.h"
 
 #endif

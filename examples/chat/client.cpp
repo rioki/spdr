@@ -9,7 +9,6 @@
 
 int main(int argc, char* argv[])
 {
-    spdr::Peer* server = NULL;
     bool running = true;
 
     if (argc != 3) 
@@ -22,24 +21,15 @@ int main(int argc, char* argv[])
     std::string address  = argv[1];
     std::string username = argv[2];
     
-    spdr::Node node(CHAT_PROTOCOL_ID, CHAT_PROTOCOL_VERSION);
+    spdr::Node node(CHAT_PROTOCOL_ID);
     
-    node.on_connect([&] (spdr::Peer* peer) 
+    node.on_disconnect([&] (unsigned int peer) 
     {
-        std::cout << "INFO: Connected to " << peer->get_address() << ":" << peer->get_port() << "." << std::endl;
-        node.send(peer, JOIN_MESSAGE, username);
-        server = peer;
-    });
-    
-    node.on_disconnect([&] (spdr::Peer* peer) 
-    {
-        std::cout << "INFO: Disconnected from " << peer->get_address() << ":" << peer->get_port() << "." << std::endl;
-        node.stop();
-        server = NULL;
+        std::cout << "INFO: Disconnected from " << peer << "." << std::endl;
         running = false;
     });
     
-    node.on_message<std::string, std::string>(SERVER_MESSAGE, [&] (spdr::Peer* peer, std::string user, std::string text) 
+    node.on_message<std::string, std::string>(SERVER_MESSAGE, [&] (unsigned int peer, std::string user, std::string text) 
     {
         if (user != username)
         {
@@ -47,23 +37,17 @@ int main(int argc, char* argv[])
         }
     });
     
-    node.connect(address, 2001);
+    unsigned int server = node.connect(address, 2001);
+    node.send(server, JOIN_MESSAGE, username);
     
-    // TODO get c9y to do async I/O
-    c9y::Thread* io = new c9y::Thread([&] () {
-        while (running)
+    while (running)
+    {
+        std::string line;
+        std::getline(std::cin, line);
+        
+        if (!line.empty())
         {
-            std::string line;
-            std::getline(std::cin, line);
-            
-            if (server != NULL && ! line.empty())
-            {
-                node.send(server, CHAT_MESSAGE, line);
-            }
+            node.send(server, CHAT_MESSAGE, line);
         }
-    });    
-    
-    c9y::run();
-    
-    io->join();
+    }
 }

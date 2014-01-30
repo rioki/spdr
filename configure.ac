@@ -14,9 +14,7 @@ AX_CXX_COMPILE_STDCXX_11(noext, mandatory)
 
 LT_INIT([shared static win32-dll])
 
-PKG_CHECK_MODULES(C9Y, [c9y >= 0.1.0])
-AC_SUBST(C9Y_CFLAGS)
-AC_SUBST(C9Y_LIBS)
+AC_SEARCH_LIBS([socket], [wsock32 ws2_32])
 
 AC_CONFIG_FILES([Makefile spdr.pc])
 

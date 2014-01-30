@@ -1,21 +1,22 @@
 
 #include <iostream>
 #include <sstream>
+#include <iomanip>
 #include <spdr/spdr.h>
 
 #include "defines.h"
 
 int main()
 {
-    std::map<spdr::Peer*, std::string> users;
+    std::map<unsigned int, std::string> users;
 
-    spdr::Node node(CHAT_PROTOCOL_ID, CHAT_PROTOCOL_VERSION);    
+    spdr::Node node(CHAT_PROTOCOL_ID, false);    
     
-    node.on_connect([&] (spdr::Peer* peer) 
+    node.on_connect([&] (unsigned int peer) 
     {
-        std::cout << "INFO: Peer " << peer->get_address() << ":" << peer->get_port() << " connected." << std::endl;
+        std::cout << "INFO: Peer " << peer << " connected." << std::endl;
     });
-    node.on_disconnect([&] (spdr::Peer* peer) 
+    node.on_disconnect([&] (unsigned int peer) 
     {
         auto i = users.find(peer);
         if (i != users.end())
@@ -25,10 +26,10 @@ int main()
             node.broadcast(SERVER_MESSAGE, "SERVER", msg.str());
             users.erase(i);
         }
-        std::cout << "INFO: Peer " << peer->get_address() << ":" << peer->get_port() << " disconnected." << std::endl;
+        std::cout << "INFO: Peer " << peer << " disconnected." << std::endl;
     });
     
-    node.on_message<std::string>(JOIN_MESSAGE, [&] (spdr::Peer* peer, std::string name) 
+    node.on_message<std::string>(JOIN_MESSAGE, [&] (unsigned int peer, std::string name) 
     {
         auto i = users.find(peer);
         if (i == users.end())
@@ -40,21 +41,22 @@ int main()
         }
         else
         {
-            std::cout << "WARNING: Peer " << peer->get_address() << ":" << peer->get_port() << " has already sent a join message." << std::endl;
+            std::cout << "WARNING: Peer " << peer << " has already sent a join message." << std::endl;
         }
     });
     
-    node.on_message<std::string>(CHAT_MESSAGE, [&] (spdr::Peer* peer, std::string text) 
+    node.on_message<std::string>(CHAT_MESSAGE, [&] (unsigned int peer, std::string text) 
     {
         auto i = users.find(peer);
         if (i != users.end())
         {
             std::string name = i->second;
             node.broadcast(SERVER_MESSAGE, name, text);
+            std::cout << std::setw(10) << std::left << name << ": " << text << std::endl;
         }
         else
         {
-            std::cout << "WARNING: Peer " << peer->get_address() << ":" << peer->get_port() << " tries to talk but has not yet joined." << std::endl;
+            std::cout << "WARNING: Peer " << peer << " tries to talk but has not yet joined." << std::endl;
         }
     });
     

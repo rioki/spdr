@@ -3,67 +3,48 @@
 #define _SPDR_NODE_H_
 
 #include <functional>
-#include <string>
-#include <vector>
-#include <list>
+#include <ctime>
 #include <map>
-#include <iosfwd>
+#include <mutex>
+#include <thread>
 
 #include "pack.h"
-#include "Peer.h"
-
-namespace c9y 
-{
-    class IpAddress;
-    class UdpSocket;
-    class Interval;
-}
+#include "IpAddress.h"
+#include "UdpSocket.h"
 
 namespace spdr
 {
-    class Peer;
-
     class Node
     {
     public:
-    
-        /**
-         * Create a Node
-         *
-         * @param id the protocol id
-         * @param version the protocol version
-         **/
-        Node(unsigned int id, unsigned int version);
+           
+        Node(unsigned int id, bool threaded = true);
         
         ~Node();
         
-        unsigned int get_id() const;   
-        
-        unsigned int get_version() const;
-        
         void listen(unsigned short port);
         
-        Peer* connect(const std::string& address, unsigned short port);
+        unsigned int connect(const std::string& host, unsigned short port);
         
-        void on_connect(std::function<void (Peer*)> cb);
+        void on_connect(std::function<void (unsigned int)> cb);
         
-        void on_disconnect(std::function<void (Peer*)> cb);
+        void on_disconnect(std::function<void (unsigned int)> cb);
         
-        void on_message(unsigned short id, std::function<void (Peer*)> cb);
-        
-        template <typename T0>
-        void on_message(unsigned short id, std::function<void (Peer*, T0)> cb);
-        
-        template <typename T0, typename T1>
-        void on_message(unsigned short id, std::function<void (Peer*, T0, T1)> cb);
-        
-        void send(Peer* peer, unsigned int message);
+        void on_message(unsigned short id, std::function<void (unsigned int)> cb);
         
         template <typename T0>
-        void send(Peer* peer, unsigned int message, T0 v0);
+        void on_message(unsigned short id, std::function<void (unsigned int, T0)> cb);
         
         template <typename T0, typename T1>
-        void send(Peer* peer, unsigned int message, T0 v0, T1 v1);
+        void on_message(unsigned short id, std::function<void (unsigned int, T0, T1)> cb);
+        
+        void send(unsigned int peer, unsigned int message);
+        
+        template <typename T0>
+        void send(unsigned int peer, unsigned int message, T0 v0);
+        
+        template <typename T0, typename T1>
+        void send(unsigned int peer, unsigned int message, T0 v0, T1 v1);
 
         void broadcast(unsigned int message);
         
@@ -76,49 +57,46 @@ namespace spdr
         /**
          * Execute the network code in this thread.         
          **/
-        void run();
-        
-        void stop();
-        
+        void run();        
     
     private:
         unsigned int id;
-        unsigned int version;
-        c9y::UdpSocket* socket;        
-        c9y::Interval*  interval;
-        std::function<void (Peer*)> connect_cb;
-        std::function<void (Peer*)> disconnect_cb;        
         
-        std::vector<Peer*> peers;
-        std::map<unsigned int, std::function<void (Peer*, std::istream&)>> messages;
+        std::function<void (unsigned int)> connect_cb;
+        std::function<void (unsigned int)> disconnect_cb;        
+        std::map<unsigned int, std::function<void (unsigned int, std::istream&)>> messages;
         
-        struct Message
+        bool        threaded;
+        bool        running;
+        std::thread worker;
+        
+        std::recursive_mutex mutex;
+        
+        UdpSocket   socket;
+        
+        struct Peer
         {
-            Peer*        peer;
-            clock_t      time;
-            unsigned int number;
-            std::string  data;
+            IpAddress address;
+            clock_t   last_message_sent;
+            clock_t   last_message_recived;
         };
-        std::list<Message*> sent_messages; // messages without an ack
+        unsigned int next_peer_id;
+        std::map<unsigned int, Peer> peers;
         
-        void handle_message(const c9y::IpAddress& address, const char* data, size_t len);        
-        void handle_incomming_acks(Peer* peer, unsigned int sequence_number, unsigned int last_ack, unsigned int ack_field);
-        
-        void do_send(Peer* peer, unsigned int message, std::function<void (std::ostream&)> pack_data);
+        void do_send(unsigned int peer, unsigned int message, std::function<void (std::ostream&)> pack_data);
         void do_broadcast(unsigned int message, std::function<void (std::ostream&)> pack_data);
-        
-        void do_keep_alive();
-        void do_timeout();
-        void do_reliable_messages();
+        void handle_incoming();
+        void keep_alive();
+        void timeout();
         
         Node(const Node&);
         const Node& operator = (const Node&);
     };
     
     template <typename T0>
-    void Node::on_message(unsigned short id, std::function<void (Peer*, T0)> cb)
+    void Node::on_message(unsigned short id, std::function<void (unsigned int, T0)> cb)
     {
-        messages[id] = [=] (Peer* peer, std::istream& is) 
+        messages[id] = [=] (unsigned int peer, std::istream& is) 
         {
             T0 v0;
             unpack(is, v0);
@@ -127,9 +105,9 @@ namespace spdr
     }
     
     template <typename T0, typename T1>
-    void Node::on_message(unsigned short id, std::function<void (Peer*, T0, T1)> cb)
+    void Node::on_message(unsigned short id, std::function<void (unsigned int, T0, T1)> cb)
     {
-        messages[id] = [=] (Peer* peer, std::istream& is) 
+        messages[id] = [=] (unsigned int peer, std::istream& is) 
         {
             T0 v0;
             T1 v1;
@@ -140,7 +118,7 @@ namespace spdr
     }
     
     template <typename T0>
-    void Node::send(Peer* peer, unsigned int message, T0 v0)
+    void Node::send(unsigned int peer, unsigned int message, T0 v0)
     {
         do_send(peer, message, [&] (std::ostream& os) {
             pack(os, v0);
@@ -148,7 +126,7 @@ namespace spdr
     }
     
     template <typename T0, typename T1>
-    void Node::send(Peer* peer, unsigned int message, T0 v0, T1 v1)
+    void Node::send(unsigned int peer, unsigned int message, T0 v0, T1 v1)
     {
         do_send(peer, message, [&] (std::ostream& os) {
             pack(os, v0);
