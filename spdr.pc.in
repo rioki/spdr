@@ -7,7 +7,7 @@ includedir=${prefix}/include
 
 Name: spdr
 Description: 
-Version: %VERSION%
+Version: @VERSION@
 Requires: 
 Libs: -L${libdir} -lspdr
 Cflags: -I${includedir}
