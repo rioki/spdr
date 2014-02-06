@@ -347,6 +347,7 @@ namespace spdr
             pack(os, v1);
             pack(os, v2);
             pack(os, v3);
+            pack(os, v4);
             pack(os, v5);
         });
     }
