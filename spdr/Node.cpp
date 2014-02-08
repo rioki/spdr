@@ -14,6 +14,8 @@
 
 namespace spdr
 {
+    const unsigned int ack_count = sizeof(unsigned int) * 8;
+
     Node::Node(unsigned int pi, bool t)
     : id(pi), threaded(t), running(true), next_peer_id(0)
     {
@@ -186,7 +188,7 @@ namespace spdr
             if (i == peers.end())
             {
                 unsigned int id = next_peer_id++;
-                Peer peer = {address, std::clock(), std::clock(), 0, 0, 0};
+                Peer peer = {address, std::clock(), std::clock(), 1, 0, 0};
                 auto ii = peers.insert(std::make_pair(id, peer));
                 i = ii.first;
                 
@@ -207,14 +209,37 @@ namespace spdr
             unpack(buff, lack);
             unpack(buff, ack_field);
             
+            // protect against duplicate messages
+            bool recived = false;
+            if (i->second.remote_sequence_number == seqnum)
+            {
+                recived = true;
+            }
+            if (i->second.remote_sequence_number > seqnum)
+            {
+                unsigned int diff = i->second.remote_sequence_number - seqnum;
+                if (diff < ack_count)
+                {
+                    recived = (i->second.ack_field & (1 << (diff - 1))) != 0;
+                }
+                else
+                {
+                    // message is way to old
+                    recived = true;
+                }
+            }
+            
             handle_acks(i->second, seqnum, lack, ack_field);
             
-            if (message != KEEP_ALIVE_MSG)
+            if (recived == false)
             {
-                auto mi = messages.find(message);
-                if (mi != messages.end())
-                {
-                    mi->second(i->first, buff);
+                if (message != KEEP_ALIVE_MSG)
+                {                
+                    auto mi = messages.find(message);
+                    if (mi != messages.end())
+                    {
+                        mi->second(i->first, buff);
+                    }
                 }
             }
             
@@ -230,8 +255,6 @@ namespace spdr
     
     void Node::handle_acks(Peer& peer, unsigned int seqnum, unsigned int lack, unsigned int acks)
     {
-        static unsigned int ack_count = sizeof(unsigned int) * 8;
-        
         // update ack info for next message
         if (peer.remote_sequence_number < seqnum)
         {
@@ -342,9 +365,5 @@ namespace spdr
                 sm++;
             }
         }
-        
-        std::for_each(sent_messages.begin(), sent_messages.end(), [&] (Message& message) {
-            
-        }); 
     }
 }
