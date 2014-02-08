@@ -106,9 +106,10 @@ namespace spdr
             done = handle_incoming();
         }
         while (!done);
-        
+                
         keep_alive();
-        timeout();
+        timeout();        
+        resend_reliable();
     }   
     
     void Node::do_send(unsigned int peer, unsigned int message, std::function<void (std::ostream&)> pack_data)
@@ -124,13 +125,27 @@ namespace spdr
         std::stringstream buff;
         
         pack(buff, id);
+        unsigned int seqnum = i->second.sequence_number;
+        i->second.sequence_number++;
+        pack(buff, seqnum);        
+        
         pack(buff, message);
+        
+        pack(buff, i->second.remote_sequence_number);
+        pack(buff, i->second.ack_field);
         
         pack_data(buff);
         
-        socket.send(i->second.address, buff.str());
+        std::string payload = buff.str();
+        socket.send(i->second.address, payload);
         
         i->second.last_message_sent = std::clock();
+                
+        if (message != KEEP_ALIVE_MSG)
+        {
+            Message m = {i->first, std::clock(), seqnum, payload};
+            sent_messages.push_back(m);
+        }
     }
     
     void Node::do_broadcast(unsigned int message, std::function<void (std::ostream&)> pack_data)
@@ -171,7 +186,7 @@ namespace spdr
             if (i == peers.end())
             {
                 unsigned int id = next_peer_id++;
-                Peer peer = {address, std::clock(), std::clock()};
+                Peer peer = {address, std::clock(), std::clock(), 0, 0, 0};
                 auto ii = peers.insert(std::make_pair(id, peer));
                 i = ii.first;
                 
@@ -181,10 +196,20 @@ namespace spdr
                 }
             }
                     
+            unsigned int seqnum;
+            unpack(buff, seqnum);        
+                
             unsigned int message;
             unpack(buff, message);
             
-            if (message != KEEP_ALIVE_THRESHOLD)
+            unsigned int lack;
+            unsigned int ack_field;;
+            unpack(buff, lack);
+            unpack(buff, ack_field);
+            
+            handle_acks(i->second, seqnum, lack, ack_field);
+            
+            if (message != KEEP_ALIVE_MSG)
             {
                 auto mi = messages.find(message);
                 if (mi != messages.end())
@@ -201,6 +226,45 @@ namespace spdr
         {
             return true;
         }
+    }
+    
+    void Node::handle_acks(Peer& peer, unsigned int seqnum, unsigned int lack, unsigned int acks)
+    {
+        static unsigned int ack_count = sizeof(unsigned int) * 8;
+        
+        // update ack info for next message
+        if (peer.remote_sequence_number < seqnum)
+        {
+            unsigned int diff = seqnum - peer.remote_sequence_number;
+            peer.remote_sequence_number = seqnum;
+            
+            peer.ack_field = peer.ack_field << diff;
+            peer.ack_field = peer.ack_field | 1 << (diff - 1);
+        }
+        else
+        {
+            unsigned int diff = peer.remote_sequence_number - seqnum;
+            if (diff < ack_count)
+            {
+                peer.ack_field = peer.ack_field | 1 << diff;
+            }
+        }
+        
+        // acknowlage messages
+        for (unsigned int i = 0; i < ack_count; i++) 
+        {                
+            if ((acks & (1 << i)) != 0)
+            {
+                unsigned int seq = lack - i;
+                auto i = std::find_if(sent_messages.begin(), sent_messages.end(), [&] (Message m) {
+                    return m.sequence_number == seq;
+                });
+                if (i != sent_messages.end())
+                {
+                    sent_messages.erase(i);
+                }
+            }
+        }        
     }
     
     void Node::keep_alive()
@@ -240,5 +304,47 @@ namespace spdr
                 i++;
             }
         }
+    }
+    
+    void Node::resend_reliable()
+    {
+        c9y::Guard<c9y::Mutex> l(mutex);
+        
+        unsigned int now = std::clock();
+        
+        auto sm = sent_messages.begin();
+        while (sm != sent_messages.end())
+        {
+            Message& message = *sm;
+            bool deleted = false;
+            
+            if ((now - message.time) > RESEND_THRESHOLD) 
+            {
+                unsigned int peer = message.peer;
+                
+                auto i = peers.find(peer);
+                if (i != peers.end())
+                {                
+                    socket.send(i->second.address, message.payload);
+                
+                    message.time = now; 
+                    i->second.last_message_sent = now; 
+                }
+                else
+                {
+                    sm = sent_messages.erase(sm);
+                    deleted = true;
+                }
+            }
+            
+            if (deleted == false)
+            {
+                sm++;
+            }
+        }
+        
+        std::for_each(sent_messages.begin(), sent_messages.end(), [&] (Message& message) {
+            
+        }); 
     }
 }

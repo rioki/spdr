@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <ctime>
+#include <list>
 #include <map>
 
 #include "pack.h"
@@ -117,15 +118,29 @@ namespace spdr
             IpAddress address;
             clock_t   last_message_sent;
             clock_t   last_message_recived;
+            unsigned int sequence_number;
+            unsigned int remote_sequence_number;
+            unsigned int ack_field;
         };
         unsigned int next_peer_id;
         std::map<unsigned int, Peer> peers;
         
+        struct Message
+        {
+            unsigned int peer;
+            clock_t      time;
+            unsigned int sequence_number;
+            std::string  payload;
+        };
+        std::list<Message> sent_messages;
+        
         void do_send(unsigned int peer, unsigned int message, std::function<void (std::ostream&)> pack_data);
         void do_broadcast(unsigned int message, std::function<void (std::ostream&)> pack_data);
         bool handle_incoming();
+        void handle_acks(Peer& peer, unsigned int seqnum, unsigned int lack, unsigned int acks);
         void keep_alive();
         void timeout();
+        void resend_reliable();
         
         Node(const Node&);
         const Node& operator = (const Node&);
