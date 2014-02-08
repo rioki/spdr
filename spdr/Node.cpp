@@ -19,7 +19,7 @@ namespace spdr
     {
         if (threaded)
         {
-            worker = std::thread([this] () {
+            worker = c9y::Thread([this] () {
                 try
                 {
                     run();
@@ -47,16 +47,18 @@ namespace spdr
     
     void Node::listen(unsigned short port)
     {
+        c9y::Guard<c9y::Mutex> l(mutex);
+        
         socket.bind(port);
     }
         
     unsigned int Node::connect(const std::string& host, unsigned short port)
     {   
-        std::lock_guard<std::recursive_mutex> l(mutex);
+        c9y::Guard<c9y::Mutex> l(mutex);
         
         unsigned int id = next_peer_id++;
         peers[id] = {IpAddress(host, port), std::clock(), std::clock()};
-        
+                
         return id;
     }
     
@@ -90,23 +92,28 @@ namespace spdr
     
     void Node::run()
     {
-        unsigned int count = 0;
         while (running)
         {
-            handle_incoming();
-            
-            if (count % 10)
-            {
-                keep_alive();
-                timeout();
-            }
-            count++;
+            step();
         }
     }
     
+    void Node::step()
+    {
+        bool done = false;
+        do 
+        {
+            done = handle_incoming();
+        }
+        while (!done);
+        
+        keep_alive();
+        timeout();
+    }   
+    
     void Node::do_send(unsigned int peer, unsigned int message, std::function<void (std::ostream&)> pack_data)
     {
-        std::lock_guard<std::recursive_mutex> l(mutex);
+        c9y::Guard<c9y::Mutex> l(mutex);
         
         auto i = peers.find(peer);
         if (i == peers.end())
@@ -128,16 +135,17 @@ namespace spdr
     
     void Node::do_broadcast(unsigned int message, std::function<void (std::ostream&)> pack_data)
     {
-        std::lock_guard<std::recursive_mutex> l(mutex);
+        c9y::Guard<c9y::Mutex> l(mutex);
+        
         for (auto i = peers.begin(); i != peers.end(); i++)
         {
             do_send(i->first, message, pack_data);
         }
     }
     
-    void Node::handle_incoming()
+    bool Node::handle_incoming()
     {
-        std::lock_guard<std::recursive_mutex> l(mutex);
+        c9y::Guard<c9y::Mutex> l(mutex);
         
         IpAddress   address;
         std::string data;
@@ -153,7 +161,7 @@ namespace spdr
             
             if (pi != id)
             {
-                return;
+                return false;
             }
             
             auto i = std::find_if(peers.begin(), peers.end(), [&] (const std::pair<unsigned int, Peer>& v) {
@@ -186,12 +194,18 @@ namespace spdr
             }
             
             i->second.last_message_recived = std::clock();
+            
+            return false;
+        }
+        else
+        {
+            return true;
         }
     }
     
     void Node::keep_alive()
     {
-        std::lock_guard<std::recursive_mutex> l(mutex);
+        c9y::Guard<c9y::Mutex> l(mutex);
         
         clock_t now = std::clock();
         
@@ -206,7 +220,7 @@ namespace spdr
     
     void Node::timeout()
     {
-        std::lock_guard<std::recursive_mutex> l(mutex);
+        c9y::Guard<c9y::Mutex> l(mutex);
         
         clock_t now = std::clock();
         

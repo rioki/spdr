@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS           = -I m4
 
-AM_CXXFLAGS               = -g -Wall -Ispdr
+AM_CXXFLAGS               = -g -Wall -Ispdr @C9Y_CFLAGS@
 
 pkginclude_HEADERS        = spdr/spdr.h \
                             spdr/Node.h \
@@ -14,7 +14,7 @@ pkgconfig_DATA 	          = spdr.pc
 lib_LTLIBRARIES           = libspdr.la
 
 libspdr_la_LDFLAGS        = -no-undefined -version-info 0:0:0
-libspdr_la_LIBADD         = 
+libspdr_la_LIBADD         = @C9Y_LIBS@
 libspdr_la_SOURCES        = spdr/Node.cpp \
                             spdr/IpAddress.cpp \
                             spdr/UdpSocket.cpp \

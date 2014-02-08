@@ -3,6 +3,8 @@
 #define _SPDR_PACK_H_
 
 #include <iosfwd>
+#include <tuple>
+#include <utility> 
 #include <vector>
 
 namespace spdr
@@ -33,6 +35,18 @@ namespace spdr
         }
     }
     
+    template<std::size_t I = 0, typename... Tp>
+    typename std::enable_if<I == sizeof...(Tp), void>::type
+    pack(std::ostream& os, const std::tuple<Tp...>& t) { }
+
+    template<std::size_t I = 0, typename... Tp>
+    typename std::enable_if<I < sizeof...(Tp), void>::type
+    pack(std::ostream& os, const std::tuple<Tp...>& t) 
+    {
+        pack(os, std::get<I>(t));
+        pack<I + 1, Tp...>(os, t);
+    }
+    
     void unpack(std::istream& is, bool& value);
     void unpack(std::istream& is, char& value);
     void unpack(std::istream& is, unsigned char& value);
@@ -59,7 +73,19 @@ namespace spdr
         {
             unpack(is, value[i]);
         }
-    } 
+    }
+    
+    template<std::size_t I = 0, typename... Tp>
+    typename std::enable_if<I == sizeof...(Tp), void>::type
+    unpack(std::istream& is, std::tuple<Tp...>& t) { }
+
+    template<std::size_t I = 0, typename... Tp>
+    typename std::enable_if<I < sizeof...(Tp), void>::type
+    unpack(std::istream& is, std::tuple<Tp...>& t) 
+    {
+        unpack(is, std::get<I>(t));
+        unpack<I + 1, Tp...>(is, t);
+    }
 }
 
 #endif

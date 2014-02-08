@@ -5,12 +5,12 @@
 #include <functional>
 #include <ctime>
 #include <map>
-#include <mutex>
-#include <thread>
 
 #include "pack.h"
 #include "IpAddress.h"
 #include "UdpSocket.h"
+
+#include <c9y/c9y.h>
 
 namespace spdr
 {
@@ -93,7 +93,9 @@ namespace spdr
         /**
          * Execute the network code in this thread.         
          **/
-        void run();        
+        void run();     
+
+        void step();
     
     private:
         unsigned int id;
@@ -104,9 +106,9 @@ namespace spdr
         
         bool        threaded;
         bool        running;
-        std::thread worker;
+        c9y::Thread worker;
         
-        std::recursive_mutex mutex;
+        c9y::Mutex  mutex;
         
         UdpSocket   socket;
         
@@ -121,7 +123,7 @@ namespace spdr
         
         void do_send(unsigned int peer, unsigned int message, std::function<void (std::ostream&)> pack_data);
         void do_broadcast(unsigned int message, std::function<void (std::ostream&)> pack_data);
-        void handle_incoming();
+        bool handle_incoming();
         void keep_alive();
         void timeout();
         
