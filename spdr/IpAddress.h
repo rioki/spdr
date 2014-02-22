@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 #endif
  
 #include <string>
