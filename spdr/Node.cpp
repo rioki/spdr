@@ -5,6 +5,7 @@
 #include <sstream>
 #include <algorithm>
 #include <utility>
+#include <climits>
 
 // TODO make this variables on Node 
 #define KEEP_ALIVE_MSG        UINT_MAX
