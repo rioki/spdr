@@ -5,7 +5,6 @@
 #include <iomanip>
 #include <cstdio>
 #include <spdr/spdr.h>
-#include <c9y/c9y.h>
 
 int main(int argc, char* argv[])
 {
