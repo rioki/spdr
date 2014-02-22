@@ -21,7 +21,7 @@ namespace spdr
     {
         if (threaded)
         {
-            worker = c9y::Thread([this] () {
+            worker = std::thread([this] () {
                 try
                 {
                     run();
@@ -49,14 +49,14 @@ namespace spdr
     
     void Node::listen(unsigned short port)
     {
-        c9y::Guard<c9y::Mutex> l(mutex);
+        std::lock_guard<std::recursive_mutex> l(mutex);
         
         socket.bind(port);
     }
         
     unsigned int Node::connect(const std::string& host, unsigned short port)
     {   
-        c9y::Guard<c9y::Mutex> l(mutex);
+        std::lock_guard<std::recursive_mutex> l(mutex);
         
         unsigned int id = next_peer_id++;
         peers[id] = {IpAddress(host, port), std::clock(), std::clock()};
@@ -116,7 +116,7 @@ namespace spdr
     
     void Node::do_send(unsigned int peer, unsigned int message, std::function<void (std::ostream&)> pack_data)
     {
-        c9y::Guard<c9y::Mutex> l(mutex);
+        std::lock_guard<std::recursive_mutex> l(mutex);
         
         auto i = peers.find(peer);
         if (i == peers.end())
@@ -152,7 +152,7 @@ namespace spdr
     
     void Node::do_broadcast(unsigned int message, std::function<void (std::ostream&)> pack_data)
     {
-        c9y::Guard<c9y::Mutex> l(mutex);
+        std::lock_guard<std::recursive_mutex> l(mutex);
         
         for (auto i = peers.begin(); i != peers.end(); i++)
         {
@@ -162,7 +162,7 @@ namespace spdr
     
     bool Node::handle_incoming()
     {
-        c9y::Guard<c9y::Mutex> l(mutex);
+        std::lock_guard<std::recursive_mutex> l(mutex);
         
         IpAddress   address;
         std::string data;
@@ -292,7 +292,7 @@ namespace spdr
     
     void Node::keep_alive()
     {
-        c9y::Guard<c9y::Mutex> l(mutex);
+        std::lock_guard<std::recursive_mutex> l(mutex);
         
         clock_t now = std::clock();
         
@@ -307,7 +307,7 @@ namespace spdr
     
     void Node::timeout()
     {
-        c9y::Guard<c9y::Mutex> l(mutex);
+        std::lock_guard<std::recursive_mutex> l(mutex);
         
         clock_t now = std::clock();
         
@@ -331,7 +331,7 @@ namespace spdr
     
     void Node::resend_reliable()
     {
-        c9y::Guard<c9y::Mutex> l(mutex);
+        std::lock_guard<std::recursive_mutex> l(mutex);
         
         unsigned int now = std::clock();
         

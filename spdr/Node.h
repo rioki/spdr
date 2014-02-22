@@ -6,12 +6,12 @@
 #include <ctime>
 #include <list>
 #include <map>
+#include <thread>
+#include <mutex>
 
 #include "pack.h"
 #include "IpAddress.h"
 #include "UdpSocket.h"
-
-#include <c9y/c9y.h>
 
 namespace spdr
 {
@@ -107,9 +107,9 @@ namespace spdr
         
         bool        threaded;
         bool        running;
-        c9y::Thread worker;
+        std::thread worker;
         
-        c9y::Mutex  mutex;
+        std::recursive_mutex mutex;
         
         UdpSocket   socket;
         
