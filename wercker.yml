@@ -1,0 +1,23 @@
+box: rioki/gcc-cpp
+build:
+  steps:
+    - script:    
+        name: autogen
+        code: sh autogen.sh
+    - script:
+        name: configure
+        code: sh configure
+    - script:        
+        name: make
+        code: make
+    - script:
+        name: make dist
+        code: make dist
+deploy:
+  steps:
+    - s3put:
+        key_id: $KEY
+        key_secret: $SECRET
+        bucket_url: $URL
+        source_file: spdr-0.1.0.tar.gz
+        dest_file: spdr/spdr-latest.tar.gz
