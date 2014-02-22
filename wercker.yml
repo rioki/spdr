@@ -15,9 +15,8 @@ build:
         code: make dist
 deploy:
   steps:
-    - s3put:
-        key_id: $KEY
-        key_secret: $SECRET
-        bucket_url: $URL
-        source_file: spdr-0.1.0.tar.gz
-        dest_file: spdr/spdr-latest.tar.gz
+    - rioki/s3put:
+        key-id: $KEY
+        key-secret: $SECRET
+        file: spdr-0.1.0.tar.gz
+        url: s3://files.rioki.org/spdr/spdr-latest.tar.gz
