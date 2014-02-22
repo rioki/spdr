@@ -9,6 +9,8 @@ typedef int socklen_t;
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 #endif
  
 namespace spdr
