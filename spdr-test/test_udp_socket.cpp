@@ -19,13 +19,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
+#include "pch.h"
 
-#include <spdr/spdr.h>
+using namespace std::chrono_literals;
 
+TEST(UdpSocket, test)
+{
+    constexpr auto port = 4302;
 
-#include <sstream>
-#include <thread>
-#include <chrono>
+    auto a = spdr::UdpSocket{};
+    auto b = spdr::UdpSocket{};
 
-#include <gtest/gtest.h>
+    a.bind(port);
+
+    auto adr = spdr::IpAddress{"localhost", port};
+    b.send(adr, "Hello World.");
+
+    std::this_thread::sleep_for(30ms);
+
+    auto [radr, result] = a.recive();
+
+    EXPECT_EQ("Hello World.", result);
+}
