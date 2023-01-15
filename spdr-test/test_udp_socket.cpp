@@ -21,6 +21,8 @@
 
 #include "pch.h"
 
+using namespace std::chrono_literals;
+
 TEST(UdpSocket, test)
 {
     constexpr auto port = 4302;
@@ -32,6 +34,8 @@ TEST(UdpSocket, test)
 
     auto adr = spdr::IpAddress{"localhost", port};
     b.send(adr, "Hello World.");
+
+    std::this_thread::sleep_for(30ms);
 
     auto [radr, result] = a.recive();
 
