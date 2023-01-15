@@ -1,0 +1,68 @@
+name: CMake
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  VCPKG_COMMIT: d73cbb6a272ab4dd6e56b0a238a2b4dc7e082c7d
+  VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
+  CTEST_OUTPUT_ON_FAILURE: 1
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        triplet: [x86-windows, x64-windows, x64-linux, x64-macos]
+        include:
+          - triplet: x86-windows
+            system: windows-latest
+            mono: ''
+          - triplet: x64-windows
+            system: windows-latest
+            mono: ''
+          - triplet: x64-linux
+            system: ubuntu-latest
+            mono: 'mono'
+          - triplet: x64-macos
+            system: macos-latest
+            mono: 'mono'
+    runs-on: ${{ matrix.system }}
+    env:
+      VCPKG_DEFAULT_TRIPLET: ${{ matrix.triplet }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Install CMake
+      uses: lukka/get-cmake@latest
+    - name: Restore from cache and install vcpkg
+      uses: lukka/run-vcpkg@v10
+      with:
+        vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+        appendedCacheKey: ${{ matrix.triplet }}
+    - name: 'Setup NuGet/Vcpkg Credentials'
+      shell: 'bash'
+      run: >
+        ${{ matrix.mono }} `./vcpkg/vcpkg fetch nuget | tail -n 1` \
+          sources add \
+          -source "https://nuget.pkg.github.com/rioki/index.json" \
+          -storepasswordincleartext \
+          -name "GitHub" \
+          -username "rioki" \
+          -password "${{ secrets.GITHUB_TOKEN }}"
+        ${{ matrix.mono }} `./vcpkg/vcpkg fetch nuget | tail -n 1` \
+          setapikey "${{ secrets.GITHUB_TOKEN }}" \
+          -source "https://nuget.pkg.github.com/rioki/index.json"
+    - name: Build
+      uses: lukka/run-cmake@v10
+      with:
+        configurePreset: 'ninja-test'
+        buildPreset: 'ninja-test'
+        testPreset: 'ninja-test'
