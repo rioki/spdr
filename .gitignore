@@ -1,38 +1,11 @@
-*.o
-*.d
-*.a
-*.so
-*.dll
-*.exe
-/m4/ltoptions.m4
-/m4/ltsugar.m4
-/m4/ltversion.m4
-/m4/libtool.m4
-/m4/lt~obsolete.m4
 
-*.lo
+# Build Output
+x86
+x64
 
-/autom4te.cache
+# Visual Studio Temp files
+.vs
+*.user
 
-.libs
-
-/Makefile
-/Makefile.in
-/aclocal.m4
-/ar-lib
-/config.guess
-/config.log
-/config.status
-/config.sub
-/configure
-/depcomp
-
-.dirstamp
-
-/install-sh
-/libspdr.la
-/libtool
-/ltmain.sh
-/missing
-/spdr.pc
-.deps
+# vcpkg
+vcpkg_installed
