@@ -33,7 +33,7 @@ namespace chat
             running = false;
         });
 
-        node.on_message<std::string, std::string>(SERVER_MESSAGE, [this] (unsigned int peer, std::string user, std::string text)
+        node.on_message<ServerMessage>([this] (auto peer, auto user, auto text)
         {
             if (user != username)
             {
@@ -46,7 +46,7 @@ namespace chat
     {
         std::cout << "INFO: Connecting to server " << address << " on port " << CHAT_PORT << " as " << username << "." << std::endl;
         unsigned int server = node.connect(address, CHAT_PORT);
-        node.send(server, JOIN_MESSAGE, username);
+        node.send<JoinMessage>(server, username);
 
         while (running)
         {
@@ -55,7 +55,7 @@ namespace chat
 
             if (!line.empty())
             {
-                node.send(server, CHAT_MESSAGE, line);
+                node.send<ChatMessage>(server, line);
             }
         }
     }
