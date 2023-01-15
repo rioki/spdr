@@ -43,7 +43,11 @@ namespace spdr
 
     private:
         static bool init;
+        #ifdef WINDOWS
+        SOCKET handle;
+        #else
         int handle;
+        #endif
 
         UdpSocket(const UdpSocket&);
         const UdpSocket& operator = (const UdpSocket&);

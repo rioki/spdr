@@ -92,19 +92,9 @@ namespace spdr
         os.write(reinterpret_cast<const char*>(&value), sizeof(value));
     }
 
-    void pack(std::ostream& os, const char* value)
-    {
-        unsigned int size = strlen(value);
-        pack(os, size);
-        if (size != 0)
-        {
-            os.write(value, size * sizeof(char));
-        }
-    }
-
     void pack(std::ostream& os, const std::string& value)
     {
-        unsigned int size = value.size();
+        unsigned int size = static_cast<unsigned int>(value.size());
         pack(os, size);
         if (size != 0)
         {

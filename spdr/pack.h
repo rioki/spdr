@@ -43,7 +43,6 @@ namespace spdr
     SPDR_EXPORT void pack(std::ostream& os, unsigned long long value);
     SPDR_EXPORT void pack(std::ostream& os, float value);
     SPDR_EXPORT void pack(std::ostream& os, double value);
-    SPDR_EXPORT void pack(std::ostream& os, const char* value);
     SPDR_EXPORT void pack(std::ostream& os, const std::string& value);
 
     template <typename T>

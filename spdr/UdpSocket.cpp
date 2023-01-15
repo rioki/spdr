@@ -111,7 +111,7 @@ namespace spdr
             throw std::invalid_argument("Data exedes safe packet size.");
         }
 
-        int r = sendto(handle, &data[0], data.size(), 0, addr, sizeof(sockaddr_in));
+        int r = sendto(handle, &data[0], static_cast<int>(data.size()), 0, addr, sizeof(sockaddr_in));
 
         if ((size_t)r != data.size())
         {
