@@ -1,0 +1,54 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "ninja",
+      "displayName": "Ninja Multi-Config Configure Settings",
+      "description": "Configure toolchain",
+      "binaryDir": "${sourceDir}/builds/${presetName}",
+      "generator": "Ninja Multi-Config"
+    },
+    {
+      "name": "ninja-test",
+      "displayName": "Ninja Multi-Config Configure Settings",
+      "description": "Configure with vcpkg toolchain",
+      "binaryDir": "${sourceDir}/builds/${presetName}",
+      "generator": "Ninja Multi-Config",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": {
+          "type": "FILEPATH",
+          "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        },
+        "ENABLE_UNIT_TESTS": {
+          "type": "BOOL",
+          "value": "ON"
+        }
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "ninja",
+      "configurePreset": "ninja",
+      "displayName": "Build with Ninja",
+      "description": "Build with Ninja"
+    },
+    {
+      "name": "ninja-test",
+      "configurePreset": "ninja-test",
+      "displayName": "Build ninja-test",
+      "description": "Build ninja-test Configurations"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "ninja-test",
+      "configurePreset": "ninja-test"
+    }
+  ]
+}
