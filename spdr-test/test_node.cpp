@@ -19,33 +19,39 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
-#include "config.h"
+#include "pch.h"
 
-#include <string>
-#include <tuple>
-#include "IpAddress.h"
-
-namespace spdr
+TEST(Node, echo)
 {
-    class SPDR_EXPORT UdpSocket
-    {
-    public:
-        UdpSocket();
-
-        ~UdpSocket();
-
-        void bind(unsigned short port);
-
-        void send(const IpAddress& addr, const std::string& data);
-
-        std::tuple<IpAddress, std::string> recive();
-
-    private:
-        static bool init;
-        int handle;
-
-        UdpSocket(const UdpSocket&);
-        const UdpSocket& operator = (const UdpSocket&);
+    constexpr auto ECHO_PORT         = 2001;
+    constexpr auto ECHO_PROTOCOLL_ID = 43u;
+    enum EchoMessages {
+        REQUEST,
+        RESPONSE
     };
+
+    auto server = spdr::Node(ECHO_PROTOCOLL_ID, false);
+    server.on_message<std::string>(REQUEST, [&] (auto peer, auto text) {
+        server.send<std::string>(peer, RESPONSE, text);
+    });
+    server.listen(ECHO_PORT);
+
+    auto response = std::string{};
+
+    auto client = spdr::Node(ECHO_PROTOCOLL_ID, false);
+    client.on_message<std::string>(RESPONSE, [&] (auto peer, auto text) {
+        response = text;
+    });
+
+    auto sever_id = client.connect("127.0.0.1", ECHO_PORT);
+    auto request = std::string{"Hello SPDR!"};
+    client.send<std::string>(sever_id, REQUEST, request);
+
+    while (response.empty())
+    {
+        server.step();
+        client.step();
+    }
+
+    EXPECT_EQ(request, response);
 }
