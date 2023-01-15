@@ -27,6 +27,10 @@
         "ENABLE_UNIT_TESTS": {
           "type": "BOOL",
           "value": "ON"
+        },
+        "ENABLE_EXAMPLES": {
+          "type": "BOOL",
+          "value": "ON"
         }
       }
     }
