@@ -170,6 +170,7 @@
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="test_node.cpp" />
     <ClCompile Include="test_pack.cpp" />
+    <ClCompile Include="test_udp_socket.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\spdr\spdr.vcxproj">
