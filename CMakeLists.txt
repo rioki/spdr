@@ -36,9 +36,9 @@ set(SOURCES
 
 add_library(spdr ${SOURCES})
 
-IF (WIN32)
-target_link_libraries(spdr PRIVATE ws2_32.lib)
-ENDIF()
+if (WIN32)
+  target_link_libraries(spdr PRIVATE ws2_32.lib)
+endif()
 
 set_target_properties(spdr PROPERTIES
     CXX_STANDARD 20
@@ -76,7 +76,7 @@ if(ENABLE_EXAMPLES)
   )
   
   include_directories(.)
-  add_executable(spdr-chat ${TEST_SOURCES})
+  add_executable(spdr-chat ${CHAT_SOURCES})
   set_target_properties(spdr-chat PROPERTIES
     CXX_STANDARD 20
   )
