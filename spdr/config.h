@@ -26,3 +26,11 @@
 #else
 #define SPDR_EXPORT
 #endif
+
+#ifndef _MSVC
+#pragma warning(disable: 4251)
+#endif
+
+#if _WIN32 | _WIN64 | __CYGWIN__
+#define WINDOWS
+#endif
