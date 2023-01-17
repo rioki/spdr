@@ -21,7 +21,7 @@
 
 #include "pch.h"
 
-#define DEBUG_TESTS
+//#define DEBUG_TESTS
 //#define IN_DEBUGGER
 
 #ifdef DEBUG_TESTS
@@ -30,6 +30,8 @@
     #else
         #define TRACE(...) std::cout << std::format(__VA_ARGS__)
     #endif
+#else
+    #define TRACE(...)
 #endif
 
 TEST(Node, echo_self_sync)
