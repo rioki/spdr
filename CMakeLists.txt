@@ -39,9 +39,9 @@ set(SOURCES
 add_library(spdr ${SOURCES})
 
 if (WIN32)
-  target_link_libraries(spdr PRIVATE c9y ws2_32.lib)
+  target_link_libraries(spdr PRIVATE c9y::c9y ws2_32.lib)
 else()
-  target_link_libraries(spdr PRIVATE c9y ws2_32.lib)
+  target_link_libraries(spdr PRIVATE c9y::c9y)
 endif()
 
 set_target_properties(spdr PROPERTIES
@@ -66,7 +66,7 @@ if(ENABLE_UNIT_TESTS)
   set_target_properties(spdr-test PROPERTIES
     CXX_STANDARD 20
   )
-  target_link_libraries(spdr-test PRIVATE spdr c9y GTest::gtest)
+  target_link_libraries(spdr-test PRIVATE spdr c9y::c9y GTest::gtest)
   add_test(spdr-test spdr-test)
 
 endif()
@@ -84,7 +84,7 @@ if(ENABLE_EXAMPLES)
   set_target_properties(spdr-chat PROPERTIES
     CXX_STANDARD 20
   )
-  target_link_libraries(spdr-chat PRIVATE spdr c9y)
+  target_link_libraries(spdr-chat PRIVATE spdr c9y::c9y)
 
 endif()
 
