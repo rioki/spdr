@@ -28,18 +28,24 @@
 #include <utility>
 #include <climits>
 
-// TODO make this variables on Node
-#define KEEP_ALIVE_MSG        UINT_MAX
-#define KEEP_ALIVE_THRESHOLD  (CLOCKS_PER_SEC / 4)
-#define TIMEOUT_THRESHOLD     (2 * CLOCKS_PER_SEC)
-#define RESEND_THRESHOLD      (1 * CLOCKS_PER_SEC)
+#undef max
 
 namespace spdr
 {
-    const unsigned int ack_count = sizeof(unsigned int) * 8;
+    constexpr auto KEEP_ALIVE_THRESHOLD = CLOCKS_PER_SEC / 4;
+    constexpr auto TIMEOUT_THRESHOLD    = 2 * CLOCKS_PER_SEC;
+    constexpr auto RESEND_THRESHOLD     = 2 * CLOCKS_PER_SEC;
+    constexpr auto ACK_COUNT            = sizeof(unsigned int) * 8;
+
+    enum SystemMessageId : MessageId
+    {
+        KEEP_ALIVE = std::numeric_limits<MessageId>::max()
+    };
+
+    using KeepAliveMessage = Message<SystemMessageId::KEEP_ALIVE>;
 
     Node::Node(unsigned int pi, bool t)
-    : id(pi), threaded(t), running(true), next_peer_id(0)
+    : id(pi), threaded(t)
     {
         if (threaded)
         {
@@ -96,24 +102,6 @@ namespace spdr
         disconnect_cb = cb;
     }
 
-    void Node::on_message(unsigned short id, std::function<void (unsigned int)> cb)
-    {
-        messages[id] = [=] (unsigned int peer, std::istream& is)
-        {
-            cb(peer);
-        };
-    }
-
-    void Node::send(unsigned int peer, unsigned int message)
-    {
-        do_send(peer, message, [] (std::ostream&) {});
-    }
-
-    void Node::broadcast(unsigned int message)
-    {
-        do_broadcast(message, [] (std::ostream&) {});
-    }
-
     void Node::run()
     {
         while (running)
@@ -136,7 +124,7 @@ namespace spdr
         resend_reliable();
     }
 
-    void Node::do_send(unsigned int peer, unsigned int message, std::function<void (std::ostream&)> pack_data)
+    void Node::do_send(PeerId peer, MessageId message, std::function<void (std::ostream&)> pack_data)
     {
         std::lock_guard<std::recursive_mutex> l(mutex);
 
@@ -165,7 +153,7 @@ namespace spdr
 
         i->second.last_message_sent = std::clock();
 
-        if (message != KEEP_ALIVE_MSG)
+        if (message != SystemMessageId::KEEP_ALIVE)
         {
             Message m = {i->first, std::clock(), seqnum, payload};
             sent_messages.push_back(m);
@@ -240,7 +228,7 @@ namespace spdr
             if (i->second.remote_sequence_number > seqnum)
             {
                 unsigned int diff = i->second.remote_sequence_number - seqnum;
-                if (diff < ack_count)
+                if (diff < ACK_COUNT)
                 {
                     recived = (i->second.ack_field & (1 << (diff - 1))) != 0;
                 }
@@ -255,7 +243,7 @@ namespace spdr
 
             if (recived == false)
             {
-                if (message != KEEP_ALIVE_MSG)
+                if (message != SystemMessageId::KEEP_ALIVE)
                 {
                     auto mi = messages.find(message);
                     if (mi != messages.end())
@@ -289,14 +277,14 @@ namespace spdr
         else
         {
             unsigned int diff = peer.remote_sequence_number - seqnum;
-            if (diff < ack_count)
+            if (diff < ACK_COUNT)
             {
                 peer.ack_field = peer.ack_field | 1 << diff;
             }
         }
 
         // acknowlage messages
-        for (unsigned int i = 0; i < ack_count; i++)
+        for (unsigned int i = 0; i < ACK_COUNT; i++)
         {
             if ((acks & (1 << i)) != 0)
             {
@@ -322,7 +310,7 @@ namespace spdr
         {
             if ((now - i->second.last_message_sent) > KEEP_ALIVE_THRESHOLD)
             {
-                send(i->first, KEEP_ALIVE_MSG);
+                send<KeepAliveMessage>(i->first);
             }
         }
     }

@@ -38,13 +38,13 @@ namespace chat
             {
                 std::stringstream msg;
                 msg << i->second << " disconnected.";
-                node.broadcast(SERVER_MESSAGE, "SERVER", msg.str());
+                node.broadcast<ServerMessage>("SERVER", msg.str());
                 users.erase(i);
             }
             std::cout << "INFO: Peer " << peer << " disconnected." << std::endl;
         });
 
-        node.on_message<std::string>(JOIN_MESSAGE, [this] (unsigned int peer, std::string name)
+        node.on_message<JoinMessage>([this] (auto peer, auto name)
         {
             auto i = users.find(peer);
             if (i == users.end())
@@ -52,7 +52,7 @@ namespace chat
                 users[peer] = name;
                 std::stringstream msg;
                 msg << name << " joined.";
-                node.broadcast(SERVER_MESSAGE, "SERVER", msg.str());
+                node.broadcast<ServerMessage>("SERVER", msg.str());
             }
             else
             {
@@ -60,13 +60,13 @@ namespace chat
             }
         });
 
-        node.on_message<std::string>(CHAT_MESSAGE, [this] (unsigned int peer, std::string text)
+        node.on_message<ChatMessage>([this] (auto peer, auto text)
         {
             auto i = users.find(peer);
             if (i != users.end())
             {
                 std::string name = i->second;
-                node.broadcast(SERVER_MESSAGE, name, text);
+                node.broadcast<ServerMessage>(name, text);
                 std::cout << std::setw(10) << std::left << name << ": " << text << std::endl;
             }
             else

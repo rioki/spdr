@@ -35,6 +35,30 @@
 
 namespace spdr
 {
+    //! Peer Id
+    using PeerId = uint32_t;
+
+    //! Type for message ids.
+    //!
+    //! Use this type to define your message id enums.
+    using MessageId = uint32_t;
+
+    //! Message Type
+    //!
+    //! The Message class is used to define the message fileds.
+    template <auto ID, typename ... PARAMS>
+    struct Message
+    {
+        using HandleFunc = std::function<void (PeerId peer, PARAMS...)>;
+        using ValueTuple = std::tuple<PARAMS...>;
+
+        static constexpr MessageId id = static_cast<MessageId>(ID);
+    };
+
+    //! Network Node
+    //!
+    //! A network node is a participant in a UDP network. This can be
+    //! either a server, client or peer, depending on how you configure it.
     class SPDR_EXPORT Node
     {
     public:
@@ -45,75 +69,29 @@ namespace spdr
 
         void listen(unsigned short port);
 
-        unsigned int connect(const std::string& host, unsigned short port);
+        //! Initiate a connection to a peer.
+        PeerId connect(const std::string& host, unsigned short port);
 
-        void on_connect(std::function<void (unsigned int)> cb);
+        //! Handle a connection.
+        void on_connect(std::function<void (PeerId)> cb);
 
-        void on_disconnect(std::function<void (unsigned int)> cb);
+        //! Handle a disconnetion.
+        void on_disconnect(std::function<void (PeerId)> cb);
 
-        void on_message(unsigned short id, std::function<void (unsigned int)> cb);
+        //! Handle a recived message.
+        template <typename MESSAGE>
+        void on_message(typename MESSAGE::HandleFunc cb);
 
-        template <typename T0>
-        void on_message(unsigned short id, std::function<void (unsigned int, T0)> cb);
+        //! Send a message to a peer.
+        template <typename MESSAGE, typename ... PARAMS>
+        void send(PeerId peer, PARAMS ... params);
 
-        template <typename T0, typename T1>
-        void on_message(unsigned short id, std::function<void (unsigned int, T0, T1)> cb);
+        //! Send a message to all connected peers.
+        template <typename MESSAGE, typename ... PARAMS>
+        void broadcast(PARAMS ... params);
 
-        template <typename T0, typename T1, typename T2>
-        void on_message(unsigned short id, std::function<void (unsigned int, T0, T1, T2)> cb);
 
-        template <typename T0, typename T1, typename T2, typename T3>
-        void on_message(unsigned short id, std::function<void (unsigned int, T0, T1, T2, T3)> cb);
-
-        template <typename T0, typename T1, typename T2, typename T3, typename T4>
-        void on_message(unsigned short id, std::function<void (unsigned int, T0, T1, T2, T3, T4)> cb);
-
-        template <typename T0, typename T1, typename T2, typename T3, typename T4, typename T5>
-        void on_message(unsigned short id, std::function<void (unsigned int, T0, T1, T2, T3, T4, T5)> cb);
-
-        void send(unsigned int peer, unsigned int message);
-
-        template <typename T0>
-        void send(unsigned int peer, unsigned int message, T0 v0);
-
-        template <typename T0, typename T1>
-        void send(unsigned int peer, unsigned int message, T0 v0, T1 v1);
-
-        template <typename T0, typename T1, typename T2>
-        void send(unsigned int peer, unsigned int message, T0 v0, T1 v1, T2 v2);
-
-        template <typename T0, typename T1, typename T2, typename T3>
-        void send(unsigned int peer, unsigned int message, T0 v0, T1 v1, T2 v2, T3 v3);
-
-        template <typename T0, typename T1, typename T2, typename T3, typename T4>
-        void send(unsigned int peer, unsigned int message, T0 v0, T1 v1, T2 v2, T3 v3, T4 v4);
-
-        template <typename T0, typename T1, typename T2, typename T3, typename T4, typename T5>
-        void send(unsigned int peer, unsigned int message, T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5);
-
-        void broadcast(unsigned int message);
-
-        template <typename T0>
-        void broadcast(unsigned int message, T0 v0);
-
-        template <typename T0, typename T1>
-        void broadcast(unsigned int message, T0 v0, T1 v1);
-
-        template <typename T0, typename T1, typename T2>
-        void broadcast(unsigned int message, T0 v0, T1 v1, T2 v2);
-
-        template <typename T0, typename T1, typename T2, typename T3>
-        void broadcast(unsigned int message, T0 v0, T1 v1, T2 v2, T3 v3);
-
-        template <typename T0, typename T1, typename T2, typename T3, typename T4>
-        void broadcast(unsigned int message, T0 v0, T1 v1, T2 v2, T3 v3, T4 v4);
-
-        template <typename T0, typename T1, typename T2, typename T3, typename T4, typename T5>
-        void broadcast(unsigned int message, T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5);
-
-        /**
-         * Execute the network code in this thread.
-         **/
+        //! Execute the network code in this thread.
         void run();
 
         void step();
@@ -123,10 +101,10 @@ namespace spdr
 
         std::function<void (unsigned int)> connect_cb;
         std::function<void (unsigned int)> disconnect_cb;
-        std::map<unsigned int, std::function<void (unsigned int, std::istream&)>> messages;
+        std::map<MessageId, std::function<void (unsigned int, std::istream&)>> messages;
 
-        bool        threaded;
-        bool        running;
+        bool        threaded = true;
+        bool        running  = true;
         std::thread worker;
 
         std::recursive_mutex mutex;
@@ -142,19 +120,19 @@ namespace spdr
             unsigned int remote_sequence_number = 0;
             unsigned int ack_field              = 0;
         };
-        unsigned int next_peer_id;
-        std::map<unsigned int, Peer> peers;
+        PeerId next_peer_id = 0;
+        std::map<PeerId, Peer> peers;
 
         struct Message
         {
-            unsigned int peer;
+            PeerId       peer;
             clock_t      time;
             unsigned int sequence_number;
             std::string  payload;
         };
         std::list<Message> sent_messages;
 
-        void do_send(unsigned int peer, unsigned int message, std::function<void (std::ostream&)> pack_data);
+        void do_send(PeerId peer, MessageId message, std::function<void (std::ostream&)> pack_data);
         void do_broadcast(unsigned int message, std::function<void (std::ostream&)> pack_data);
         bool handle_incoming();
         void handle_acks(Peer& peer, unsigned int seqnum, unsigned int lack, unsigned int acks);
@@ -162,230 +140,34 @@ namespace spdr
         void timeout();
         void resend_reliable();
 
-        Node(const Node&);
-        const Node& operator = (const Node&);
+        Node(const Node&) = delete;
+        const Node& operator = (const Node&) = delete;
     };
 
-    template <typename T0>
-    void Node::on_message(unsigned short id, std::function<void (unsigned int, T0)> cb)
+    template <typename MESSAGE>
+    void Node::on_message(typename MESSAGE::HandleFunc cb)
     {
-        messages[id] = [=] (unsigned int peer, std::istream& is)
+        messages[MESSAGE::id] = [=] (PeerId peer, std::istream& is)
         {
-            T0 v0;
-            unpack(is, v0);
-            cb(peer, v0);
+            auto values = typename MESSAGE::ValueTuple{};
+            unpack(is, values);
+            std::apply(std::bind_front(cb, peer), values);
         };
     }
 
-    template <typename T0, typename T1>
-    void Node::on_message(unsigned short id, std::function<void (unsigned int, T0, T1)> cb)
+    template <typename MESSAGE, typename ... PARAMS>
+    void Node::send(PeerId peer, PARAMS ... params)
     {
-        messages[id] = [=] (unsigned int peer, std::istream& is)
-        {
-            T0 v0;
-            T1 v1;
-            unpack(is, v0);
-            unpack(is, v1);
-            cb(peer, v0, v1);
-        };
-    }
-
-    template <typename T0, typename T1, typename T2>
-    void Node::on_message(unsigned short id, std::function<void (unsigned int, T0, T1, T2)> cb)
-    {
-        messages[id] = [=] (unsigned int peer, std::istream& is)
-        {
-            T0 v0;
-            T1 v1;
-            T2 v2;
-            unpack(is, v0);
-            unpack(is, v1);
-            unpack(is, v2);
-            cb(peer, v0, v1, v2);
-        };
-    }
-
-    template <typename T0, typename T1, typename T2, typename T3>
-    void Node::on_message(unsigned short id, std::function<void (unsigned int, T0, T1, T2, T3)> cb)
-    {
-        messages[id] = [=] (unsigned int peer, std::istream& is)
-        {
-            T0 v0;
-            T1 v1;
-            T2 v2;
-            T3 v3;
-            unpack(is, v0);
-            unpack(is, v1);
-            unpack(is, v2);
-            unpack(is, v3);
-            cb(peer, v0, v1, v2, v3);
-        };
-    }
-
-
-    template <typename T0, typename T1, typename T2, typename T3, typename T4>
-    void Node::on_message(unsigned short id, std::function<void (unsigned int, T0, T1, T2, T3, T4)> cb)
-    {
-        messages[id] = [=] (unsigned int peer, std::istream& is)
-        {
-            T0 v0;
-            T1 v1;
-            T2 v2;
-            T3 v3;
-            T4 v4;
-            unpack(is, v0);
-            unpack(is, v1);
-            unpack(is, v2);
-            unpack(is, v3);
-            unpack(is, v4);
-            cb(peer, v0, v1, v2, v3, v4);
-        };
-    }
-
-    template <typename T0, typename T1, typename T2, typename T3, typename T4, typename T5>
-    void Node::on_message(unsigned short id, std::function<void (unsigned int, T0, T1, T2, T3, T4, T5)> cb)
-    {
-        messages[id] = [=] (unsigned int peer, std::istream& is)
-        {
-            T0 v0;
-            T1 v1;
-            T2 v2;
-            T3 v3;
-            T4 v4;
-            T5 v5;
-            unpack(is, v0);
-            unpack(is, v1);
-            unpack(is, v2);
-            unpack(is, v3);
-            unpack(is, v4);
-            unpack(is, v5);
-            cb(peer, v0, v1, v2, v3, v4, v5);
-        };
-    }
-
-    template <typename T0>
-    void Node::send(unsigned int peer, unsigned int message, T0 v0)
-    {
-        do_send(peer, message, [&] (std::ostream& os) {
-            pack(os, v0);
+        do_send(peer, MESSAGE::id, [&] (std::ostream& os) {
+            (pack(os, params), ...);
         });
     }
 
-    template <typename T0, typename T1>
-    void Node::send(unsigned int peer, unsigned int message, T0 v0, T1 v1)
+    template <typename MESSAGE, typename ... PARAMS>
+    void Node::broadcast(PARAMS ... params)
     {
-        do_send(peer, message, [&] (std::ostream& os) {
-            pack(os, v0);
-            pack(os, v1);
-        });
-    }
-
-    template <typename T0, typename T1, typename T2>
-    void Node::send(unsigned int peer, unsigned int message, T0 v0, T1 v1, T2 v2)
-    {
-        do_send(peer, message, [&] (std::ostream& os) {
-            pack(os, v0);
-            pack(os, v1);
-            pack(os, v2);
-        });
-    }
-
-    template <typename T0, typename T1, typename T2, typename T3>
-    void Node::send(unsigned int peer, unsigned int message, T0 v0, T1 v1, T2 v2, T3 v3)
-    {
-        do_send(peer, message, [&] (std::ostream& os) {
-            pack(os, v0);
-            pack(os, v1);
-            pack(os, v2);
-            pack(os, v3);
-        });
-    }
-
-    template <typename T0, typename T1, typename T2, typename T3, typename T4>
-    void Node::send(unsigned int peer, unsigned int message, T0 v0, T1 v1, T2 v2, T3 v3, T4 v4)
-    {
-        do_send(peer, message, [&] (std::ostream& os) {
-            pack(os, v0);
-            pack(os, v1);
-            pack(os, v2);
-            pack(os, v3);
-            pack(os, v4);
-        });
-    }
-
-    template <typename T0, typename T1, typename T2, typename T3, typename T4, typename T5>
-    void Node::send(unsigned int peer, unsigned int message, T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5)
-    {
-        do_send(peer, message, [&] (std::ostream& os) {
-            pack(os, v0);
-            pack(os, v1);
-            pack(os, v2);
-            pack(os, v3);
-            pack(os, v4);
-            pack(os, v5);
-        });
-    }
-
-    template <typename T0>
-    void Node::broadcast(unsigned int message, T0 v0)
-    {
-        do_broadcast(message, [&] (std::ostream& os) {
-            pack(os, v0);
-        });
-    }
-
-    template <typename T0, typename T1>
-    void Node::broadcast(unsigned int message, T0 v0, T1 v1)
-    {
-        do_broadcast(message, [&] (std::ostream& os) {
-            pack(os, v0);
-            pack(os, v1);
-        });
-    }
-
-    template <typename T0, typename T1, typename T2>
-    void Node::broadcast(unsigned int message, T0 v0, T1 v1, T2 v2)
-    {
-        do_broadcast(message, [&] (std::ostream& os) {
-            pack(os, v0);
-            pack(os, v1);
-            pack(os, v2);
-        });
-    }
-
-    template <typename T0, typename T1, typename T2, typename T3>
-    void Node::broadcast(unsigned int message, T0 v0, T1 v1, T2 v2, T3 v3)
-    {
-        do_broadcast(message, [&] (std::ostream& os) {
-            pack(os, v0);
-            pack(os, v1);
-            pack(os, v2);
-            pack(os, v3);
-        });
-    }
-
-    template <typename T0, typename T1, typename T2, typename T3, typename T4>
-    void Node::broadcast(unsigned int message, T0 v0, T1 v1, T2 v2, T3 v3, T4 v4)
-    {
-        do_broadcast(message, [&] (std::ostream& os) {
-            pack(os, v0);
-            pack(os, v1);
-            pack(os, v2);
-            pack(os, v3);
-            pack(os, v4);
-        });
-    }
-
-    template <typename T0, typename T1, typename T2, typename T3, typename T4, typename T5>
-    void Node::broadcast(unsigned int message, T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5)
-    {
-        do_broadcast(message, [&] (std::ostream& os) {
-            pack(os, v0);
-            pack(os, v1);
-            pack(os, v2);
-            pack(os, v3);
-            pack(os, v4);
-            pack(os, v5);
+        do_broadcast(MESSAGE::id, [&] (std::ostream& os) {
+            (pack(os, params), ...);
         });
     }
 }

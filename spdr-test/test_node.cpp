@@ -25,27 +25,31 @@ TEST(Node, echo)
 {
     constexpr auto ECHO_PORT         = 2001;
     constexpr auto ECHO_PROTOCOLL_ID = 43u;
-    enum EchoMessages {
+    enum class EchoMessageId : spdr::MessageId
+    {
         REQUEST,
         RESPONSE
     };
 
+    using EchoRequest  = spdr::Message<EchoMessageId::REQUEST, std::string>;
+    using EchoResponse = spdr::Message<EchoMessageId::RESPONSE, std::string>;
+
     auto server = spdr::Node(ECHO_PROTOCOLL_ID, false);
-    server.on_message<std::string>(REQUEST, [&] (auto peer, auto text) {
-        server.send<std::string>(peer, RESPONSE, text);
+    server.on_message<EchoRequest>([&] (auto peer, auto text) {
+        server.send<EchoResponse>(peer, text);
     });
     server.listen(ECHO_PORT);
 
     auto response = std::string{};
 
     auto client = spdr::Node(ECHO_PROTOCOLL_ID, false);
-    client.on_message<std::string>(RESPONSE, [&] (auto peer, auto text) {
+    client.on_message<EchoResponse>([&] (auto /*peer*/, auto text) {
         response = text;
     });
 
     auto sever_id = client.connect("127.0.0.1", ECHO_PORT);
     auto request = std::string{"Hello SPDR!"};
-    client.send<std::string>(sever_id, REQUEST, request);
+    client.send<EchoRequest>(sever_id, request);
 
     while (response.empty())
     {

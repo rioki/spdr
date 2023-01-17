@@ -1,13 +1,41 @@
+// spdr
+// Copyright 2011-2023 Sean Farrell
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files(the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions :
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
-#ifndef _DEFINES_H_
-#define _DEFINES_H_
+#pragma once
 
-#define CHAT_PROTOCOL_ID      0xC5A7
-#define CHAT_PORT             2001
-#define JOIN_MESSAGE          0
-#define SERVER_MESSAGE        1
-#define CHAT_MESSAGE          2
+#include <spdr/spdr.h>
 
+namespace chat
+{
+    constexpr auto CHAT_PROTOCOL_ID = 0xC5A7;
+    constexpr auto CHAT_PORT        = 2001;
 
+    enum class ChatMessageId : spdr::MessageId
+    {
+        JOIN,
+        SERVER,
+        CHAT
+    };
 
-#endif
+    using JoinMessage   = spdr::Message<ChatMessageId::JOIN, std::string>;
+    using ServerMessage = spdr::Message<ChatMessageId::SERVER, std::string, std::string>;
+    using ChatMessage = spdr::Message<ChatMessageId::CHAT, std::string>;
+}
