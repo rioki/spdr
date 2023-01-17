@@ -132,7 +132,7 @@ namespace spdr
         };
         std::list<Message> sent_messages;
 
-        void do_send(PeerId peer, MesasgeId message, std::function<void (std::ostream&)> pack_data);
+        void do_send(PeerId peer, MessageId message, std::function<void (std::ostream&)> pack_data);
         void do_broadcast(unsigned int message, std::function<void (std::ostream&)> pack_data);
         bool handle_incoming();
         void handle_acks(Peer& peer, unsigned int seqnum, unsigned int lack, unsigned int acks);

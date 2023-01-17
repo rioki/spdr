@@ -124,7 +124,7 @@ namespace spdr
         resend_reliable();
     }
 
-    void Node::do_send(unsigned int peer, unsigned int message, std::function<void (std::ostream&)> pack_data)
+    void Node::do_send(PeerId peer, MessageId message, std::function<void (std::ostream&)> pack_data)
     {
         std::lock_guard<std::recursive_mutex> l(mutex);
 
