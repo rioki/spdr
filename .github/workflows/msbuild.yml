@@ -53,7 +53,7 @@ jobs:
           -source "https://nuget.pkg.github.com/rioki/index.json"
     - name: Integrate vcpkg in MSBuild
       shell: 'bash'
-      run: vcpkg.exe integrate install
+      run: ./vcpkg/vcpkg integrate install
     - name: Build (Debug)
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: msbuild /m /p:Configuration=Debug /property:Platform=${{matrix.platform}} spdr.sln
