@@ -1,6 +1,7 @@
 {
   "name": "spdr",
   "version": "0.2.0",
+  "builtin-baseline": "877e3dc2323a4d4c3c75e7168c22a0c4e921d4db",
   "dependencies": [
       "gtest",
       "c9y"
