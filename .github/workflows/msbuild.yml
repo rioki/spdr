@@ -11,7 +11,7 @@ permissions:
   packages: write
 
 env:
-  VCPKG_COMMIT: d73cbb6a272ab4dd6e56b0a238a2b4dc7e082c7d
+  VCPKG_COMMIT: 877e3dc2323a4d4c3c75e7168c22a0c4e921d4db
   VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
 
 jobs:
