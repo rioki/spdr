@@ -2,6 +2,7 @@
   "name": "spdr",
   "version": "0.2.0",
   "dependencies": [
-      "gtest"
+      "gtest",
+      "c9y"
   ]
 }

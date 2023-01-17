@@ -35,7 +35,7 @@ namespace chat
         void run();
 
     private:
-        spdr::Node node = {CHAT_PROTOCOL_ID, false};
+        spdr::Node node = {CHAT_PROTOCOL_ID};
         std::map<unsigned int, std::string> users;
 
         ChatServer(const ChatServer&) = delete;

@@ -28,6 +28,7 @@
 #include <map>
 #include <thread>
 #include <mutex>
+#include <c9y/c9y.h>
 
 #include "pack.h"
 #include "IpAddress.h"
@@ -43,16 +44,45 @@ namespace spdr
     //! Use this type to define your message id enums.
     using MessageId = uint32_t;
 
+    struct BasicMessage
+    {
+        virtual ~BasicMessage() = default;
+        virtual MessageId get_id() const = 0;
+        virtual void pack(std::ostream& output) = 0;
+        virtual void unpack(std::istream& input) = 0;
+    };
+
     //! Message Type
     //!
     //! The Message class is used to define the message fileds.
     template <auto ID, typename ... PARAMS>
-    struct Message
+    struct Message : public BasicMessage
     {
         using HandleFunc = std::function<void (PeerId peer, PARAMS...)>;
         using ValueTuple = std::tuple<PARAMS...>;
 
         static constexpr MessageId id = static_cast<MessageId>(ID);
+
+        ValueTuple values;
+
+        template <typename ... CPARAMS>
+        Message(CPARAMS ... params)
+        : values(params...) {}
+
+        MessageId get_id() const override
+        {
+            return static_cast<MessageId>(ID);
+        }
+
+        void pack(std::ostream& output) override
+        {
+            ::spdr::pack(output, values);
+        }
+
+        void unpack(std::istream& input) override
+        {
+            ::spdr::unpack(input, values);
+        }
     };
 
     //! Network Node
@@ -62,15 +92,19 @@ namespace spdr
     class SPDR_EXPORT Node
     {
     public:
+        //! Construct a node.
+        Node(unsigned int id);
 
-        Node(unsigned int id, bool threaded = true);
+        //! Construct with a sync thread.
+        Node(unsigned int id, std::thread::id handler_id);
 
+        //! Destruct a node.
         ~Node();
 
         void listen(unsigned short port);
 
         //! Initiate a connection to a peer.
-        PeerId connect(const std::string& host, unsigned short port);
+        PeerId connect(const IpAddress& address);
 
         //! Handle a connection.
         void on_connect(std::function<void (PeerId)> cb);
@@ -90,26 +124,23 @@ namespace spdr
         template <typename MESSAGE, typename ... PARAMS>
         void broadcast(PARAMS ... params);
 
-
-        //! Execute the network code in this thread.
+        //! Use this thread to handle events.
         void run();
 
-        void step();
+        //! Stop the node's execution.
+        void stop();
 
     private:
         unsigned int id;
 
         std::function<void (unsigned int)> connect_cb;
         std::function<void (unsigned int)> disconnect_cb;
-        std::map<MessageId, std::function<void (unsigned int, std::istream&)>> messages;
+        std::map<MessageId, std::function<void (unsigned int, std::istream&)>> handlers;
 
-        bool        threaded = true;
-        bool        running  = true;
-        std::thread worker;
-
-        std::recursive_mutex mutex;
-
-        UdpSocket   socket;
+        std::atomic<bool> running  = true;
+        std::jthread      worker;
+        std::thread::id   handler_id;
+        UdpSocket         socket;
 
         struct Peer
         {
@@ -120,7 +151,7 @@ namespace spdr
             unsigned int remote_sequence_number = 0;
             unsigned int ack_field              = 0;
         };
-        PeerId next_peer_id = 0;
+        std::atomic<PeerId> next_peer_id = 0;
         std::map<PeerId, Peer> peers;
 
         struct Message
@@ -132,8 +163,9 @@ namespace spdr
         };
         std::list<Message> sent_messages;
 
-        void do_send(PeerId peer, MessageId message, std::function<void (std::ostream&)> pack_data);
-        void do_broadcast(unsigned int message, std::function<void (std::ostream&)> pack_data);
+        void step();
+        void do_send(PeerId peer, std::shared_ptr<BasicMessage> message);
+        void do_broadcast(std::shared_ptr<BasicMessage> message);
         bool handle_incoming();
         void handle_acks(Peer& peer, unsigned int seqnum, unsigned int lack, unsigned int acks);
         void keep_alive();
@@ -147,27 +179,31 @@ namespace spdr
     template <typename MESSAGE>
     void Node::on_message(typename MESSAGE::HandleFunc cb)
     {
-        messages[MESSAGE::id] = [=] (PeerId peer, std::istream& is)
+        handlers[MESSAGE::id] = [this, cb] (PeerId peer, std::istream& is)
         {
-            auto values = typename MESSAGE::ValueTuple{};
-            unpack(is, values);
-            std::apply(std::bind_front(cb, peer), values);
+            auto message = std::make_shared<MESSAGE>();
+            message->unpack(is);
+            c9y::sync(handler_id, [cb, peer, message] () {
+                std::apply(std::bind_front(cb, peer), message->values);
+            });
         };
     }
 
     template <typename MESSAGE, typename ... PARAMS>
     void Node::send(PeerId peer, PARAMS ... params)
     {
-        do_send(peer, MESSAGE::id, [&] (std::ostream& os) {
-            (pack(os, params), ...);
+        auto message = std::make_shared<MESSAGE>(params...);
+        c9y::sync(worker.get_id(), [this, peer, message] () mutable {
+            do_send(peer, message);
         });
     }
 
     template <typename MESSAGE, typename ... PARAMS>
     void Node::broadcast(PARAMS ... params)
     {
-        do_broadcast(MESSAGE::id, [&] (std::ostream& os) {
-            (pack(os, params), ...);
+        auto message = std::make_shared<MESSAGE>(params...);
+        c9y::sync(worker.get_id(), [this, message] () mutable {
+            do_broadcast(message);
         });
     }
 }

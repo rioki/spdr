@@ -45,7 +45,7 @@ namespace chat
     void ChatClient::run()
     {
         std::cout << "INFO: Connecting to server " << address << " on port " << CHAT_PORT << " as " << username << "." << std::endl;
-        unsigned int server = node.connect(address, CHAT_PORT);
+        unsigned int server = node.connect({address, CHAT_PORT});
         node.send<JoinMessage>(server, username);
 
         while (running)

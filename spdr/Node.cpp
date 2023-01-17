@@ -28,6 +28,8 @@
 #include <utility>
 #include <climits>
 
+#include <c9y/sync.h>
+
 #undef max
 
 namespace spdr
@@ -44,52 +46,44 @@ namespace spdr
 
     using KeepAliveMessage = Message<SystemMessageId::KEEP_ALIVE>;
 
-    Node::Node(unsigned int pi, bool t)
-    : id(pi), threaded(t)
+    Node::Node(unsigned int pi)
+    : id(pi)
     {
-        if (threaded)
-        {
-            worker = std::thread([this] () {
-                try
-                {
-                    run();
-                }
-                catch (std::exception& ex)
-                {
-                    std::cerr << ex.what() << std::endl;
-                }
-                catch (...)
-                {
-                    std::cerr << "Network worker crashed." << std::endl;
-                }
-            });
-        }
+        worker = std::jthread([this] (std::stop_token stop_token) {
+            while (!stop_token.stop_requested())
+            {
+                step();
+            }
+        });
+        handler_id = worker.get_id();
+    }
+
+    Node::Node(unsigned int pi, std::thread::id hid)
+    : Node(pi)
+    {
+        handler_id = hid;
     }
 
     Node::~Node()
     {
-        running = false;
-        if (threaded)
-        {
-            worker.join();
-        }
+        worker.request_stop();
+        worker.join();
     }
 
     void Node::listen(unsigned short port)
     {
-        std::lock_guard<std::recursive_mutex> l(mutex);
-
-        socket.bind(port);
+        c9y::sync(worker.get_id(), [this, port] () {
+            socket.bind(port);
+        });
     }
 
-    unsigned int Node::connect(const std::string& host, unsigned short port)
+    unsigned int Node::connect(const IpAddress& address)
     {
-        std::lock_guard<std::recursive_mutex> l(mutex);
-
-        unsigned int id = next_peer_id++;
-        peers[id] = {IpAddress(host, port)};
-
-        return id;
+        unsigned int pid = next_peer_id++;
+        c9y::sync(worker.get_id(), [this, address, pid] () {
+            peers[pid] = {address};
+        });
+        return pid;
     }
 
     void Node::on_connect(std::function<void (unsigned int)> cb)
@@ -102,17 +96,28 @@ namespace spdr
         disconnect_cb = cb;
     }
 
+    void Node::stop()
+    {
+        worker.request_stop();
+    }
+
     void Node::run()
     {
-        while (running)
+        handler_id = std::this_thread::get_id();
+        auto woker_stop_token = worker.get_stop_token();
+        while (!woker_stop_token.stop_requested())
         {
-            step();
+            c9y::sync_point();
         }
     }
 
     void Node::step()
     {
-        bool done = false;
+        assert(std::this_thread::get_id() == worker.get_id());
+
+        c9y::sync_point();
+
+        auto done = false;
         do
         {
             done = handle_incoming();
@@ -124,14 +129,15 @@ namespace spdr
         resend_reliable();
     }
 
-    void Node::do_send(PeerId peer, MessageId message, std::function<void (std::ostream&)> pack_data)
+    void Node::do_send(PeerId peer, std::shared_ptr<BasicMessage> message)
     {
-        std::lock_guard<std::recursive_mutex> l(mutex);
+        assert(std::this_thread::get_id() == worker.get_id());
 
         auto i = peers.find(peer);
         if (i == peers.end())
         {
-            throw std::invalid_argument("Invalid peer reference.");
+            assert(false && "No peer to send to.");
+            return;
         }
 
         std::stringstream buff;
@@ -141,134 +147,121 @@ namespace spdr
         i->second.sequence_number++;
         pack(buff, seqnum);
 
-        pack(buff, message);
+        pack(buff, message->get_id());
 
         pack(buff, i->second.remote_sequence_number);
         pack(buff, i->second.ack_field);
 
-        pack_data(buff);
+        message->pack(buff);
 
         std::string payload = buff.str();
         socket.send(i->second.address, payload);
 
         i->second.last_message_sent = std::clock();
 
-        if (message != SystemMessageId::KEEP_ALIVE)
+        if (message->get_id() != SystemMessageId::KEEP_ALIVE)
         {
             Message m = {i->first, std::clock(), seqnum, payload};
             sent_messages.push_back(m);
         }
     }
 
-    void Node::do_broadcast(unsigned int message, std::function<void (std::ostream&)> pack_data)
+    void Node::do_broadcast(std::shared_ptr<BasicMessage> message)
     {
-        std::lock_guard<std::recursive_mutex> l(mutex);
+        assert(std::this_thread::get_id() == worker.get_id());
 
         for (auto i = peers.begin(); i != peers.end(); i++)
         {
-            do_send(i->first, message, pack_data);
+            do_send(i->first, message);
         }
     }
 
     bool Node::handle_incoming()
     {
-        std::lock_guard<std::recursive_mutex> l(mutex);
+        assert(std::this_thread::get_id() == worker.get_id());
 
-        IpAddress   address;
-        std::string data;
-
-        std::tie(address, data) = socket.recive();
-
-        if (! data.empty())
-        {
-            std::stringstream buff(data);
-
-            unsigned int pi;
-            unpack(buff, pi);
-
-            if (pi != id)
-            {
-                return false;
-            }
-
-            auto i = std::find_if(peers.begin(), peers.end(), [&] (const std::pair<unsigned int, Peer>& v) {
-                return v.second.address == address;
-            });
-
-            if (i == peers.end())
-            {
-                unsigned int id = next_peer_id++;
-                Peer peer = {address};
-                auto ii = peers.insert(std::make_pair(id, peer));
-                i = ii.first;
-
-                if (connect_cb)
-                {
-                    connect_cb(i->first);
-                }
-            }
-
-            unsigned int seqnum;
-            unpack(buff, seqnum);
-
-            unsigned int message;
-            unpack(buff, message);
-
-            unsigned int lack;
-            unsigned int ack_field;;
-            unpack(buff, lack);
-            unpack(buff, ack_field);
-
-            // protect against duplicate messages
-            bool recived = false;
-            if (i->second.remote_sequence_number == seqnum)
-            {
-                recived = true;
-            }
-            if (i->second.remote_sequence_number > seqnum)
-            {
-                unsigned int diff = i->second.remote_sequence_number - seqnum;
-                if (diff < ACK_COUNT)
-                {
-                    recived = (i->second.ack_field & (1 << (diff - 1))) != 0;
-                }
-                else
-                {
-                    // message is way to old
-                    recived = true;
-                }
-            }
-
-            handle_acks(i->second, seqnum, lack, ack_field);
-
-            if (recived == false)
-            {
-                if (message != SystemMessageId::KEEP_ALIVE)
-                {
-                    auto mi = messages.find(message);
-                    if (mi != messages.end())
-                    {
-                        mi->second(i->first, buff);
-                    }
-                }
-            }
-
-            i->second.last_message_recived = std::clock();
-
-            return false;
-        }
-        else
+        auto [address, data] = socket.recive();
+        if (data.empty())
         {
             return true;
         }
+        auto buff = std::stringstream{data};
+
+        auto pi = unpack<unsigned int>(buff);
+        if (pi != id)
+        {
+            return false;
+        }
+
+        auto i = std::ranges::find_if(peers, [&] (const std::pair<unsigned int, Peer>& v) {
+            return v.second.address == address;
+        });
+
+        if (i == peers.end())
+        {
+            auto new_id = next_peer_id++;
+            auto [it, inserted] = peers.try_emplace(new_id, address);
+            assert(inserted);
+            i = it;
+
+            c9y::sync(handler_id, [this, peer = i->first] () {
+                if (connect_cb)
+                {
+                    connect_cb(peer);
+                }
+            });
+        }
+
+        auto seqnum  = unpack<unsigned int>(buff);
+        auto message = unpack<unsigned int>(buff);
+
+        auto lack      = unpack<unsigned int>(buff);
+        auto ack_field = unpack<unsigned int>(buff);
+
+        // protect against duplicate messages
+        auto recived = false;
+        if (i->second.remote_sequence_number == seqnum)
+        {
+            recived = true;
+        }
+        if (i->second.remote_sequence_number > seqnum)
+        {
+            auto diff = i->second.remote_sequence_number - seqnum;
+            if (diff < ACK_COUNT)
+            {
+                recived = (i->second.ack_field & (1 << (diff - 1))) != 0;
+            }
+            else
+            {
+                // message is way to old
+                recived = true;
+            }
+        }
+
+        handle_acks(i->second, seqnum, lack, ack_field);
+
+        if (recived == false && message != SystemMessageId::KEEP_ALIVE)
+        {
+            auto mi = handlers.find(message);
+            if (mi != handlers.end())
+            {
+                mi->second(i->first, buff);
+            }
+        }
+
+        i->second.last_message_recived = std::clock();
+
+        return false;
     }
 
     void Node::handle_acks(Peer& peer, unsigned int seqnum, unsigned int lack, unsigned int acks)
     {
+        assert(std::this_thread::get_id() == worker.get_id());
+
         // update ack info for next message
         if (peer.remote_sequence_number < seqnum)
         {
-            unsigned int diff = seqnum - peer.remote_sequence_number;
+            auto diff = seqnum - peer.remote_sequence_number;
             peer.remote_sequence_number = seqnum;
 
             peer.ack_field = peer.ack_field << diff;
@@ -276,7 +269,7 @@ namespace spdr
         }
         else
         {
-            unsigned int diff = peer.remote_sequence_number - seqnum;
+            auto diff = peer.remote_sequence_number - seqnum;
             if (diff < ACK_COUNT)
             {
                 peer.ack_field = peer.ack_field | 1 << diff;
@@ -284,78 +277,61 @@ namespace spdr
         }
 
         // acknowlage messages
-        for (unsigned int i = 0; i < ACK_COUNT; i++)
+        for (auto i = 0u; i < ACK_COUNT; i++)
         {
             if ((acks & (1 << i)) != 0)
             {
-                unsigned int seq = lack - i;
-                auto i = std::find_if(sent_messages.begin(), sent_messages.end(), [&] (Message m) {
-                    return m.sequence_number == seq;
+                auto seq = lack - i;
+                std::erase_if(sent_messages, [seq] (const auto& message) {
+                    return message.sequence_number == seq;
                 });
-                if (i != sent_messages.end())
-                {
-                    sent_messages.erase(i);
-                }
             }
         }
     }
 
     void Node::keep_alive()
     {
-        std::lock_guard<std::recursive_mutex> l(mutex);
+        assert(std::this_thread::get_id() == worker.get_id());
 
-        clock_t now = std::clock();
-
-        for (auto i = peers.begin(); i != peers.end(); i++)
-        {
-            if ((now - i->second.last_message_sent) > KEEP_ALIVE_THRESHOLD)
+        auto now = std::clock();
+        std::ranges::for_each(peers, [this, now] (const auto& val) {
+            if ((now - val.second.last_message_sent) > KEEP_ALIVE_THRESHOLD)
             {
-                send<KeepAliveMessage>(i->first);
+                do_send(val.first, std::make_shared<KeepAliveMessage>());
             }
-        }
+        });
     }
 
     void Node::timeout()
     {
-        std::lock_guard<std::recursive_mutex> l(mutex);
+        assert(std::this_thread::get_id() == worker.get_id());
 
-        clock_t now = std::clock();
+        auto now = std::clock();
 
         auto i = peers.begin();
-        while (i != peers.end())
-        {
-            if ((now - i->second.last_message_recived) > TIMEOUT_THRESHOLD)
-            {
+        std::erase_if(peers, [this, now] (const auto& val) {
+            if ((now - val.second.last_message_recived) > TIMEOUT_THRESHOLD) {
                 if (disconnect_cb)
                 {
-                    disconnect_cb(i->first);
+                    disconnect_cb(val.first);
                 }
-                i = peers.erase(i);
+                return true;
             }
-            else
-            {
-                i++;
-            }
-        }
+            return false;
+        });
     }
 
     void Node::resend_reliable()
     {
-        std::lock_guard<std::recursive_mutex> l(mutex);
+        assert(std::this_thread::get_id() == worker.get_id());
 
-        unsigned int now = std::clock();
-
-        auto sm = sent_messages.begin();
-        while (sm != sent_messages.end())
-        {
-            Message& message = *sm;
-            bool deleted = false;
+        auto now = std::clock();
+        std::erase_if(sent_messages, [this, now] (auto& message) {
+            auto to_delete = false;
 
             if ((now - message.time) > RESEND_THRESHOLD)
             {
-                unsigned int peer = message.peer;
-
-                auto i = peers.find(peer);
+                auto i = peers.find(message.peer);
                 if (i != peers.end())
                 {
                     socket.send(i->second.address, message.payload);
@@ -365,15 +341,11 @@ namespace spdr
                 }
                 else
                 {
-                    sm = sent_messages.erase(sm);
-                    deleted = true;
+                    to_delete = true;
                 }
             }
 
-            if (deleted == false)
-            {
-                sm++;
-            }
-        }
+            return to_delete;
+        });
     }
 }
