@@ -11,7 +11,7 @@ permissions:
   packages: write
 
 env:
-  VCPKG_COMMIT: e51afe4695ebf5e6c6f523dbd3bb518db1970531
+  VCPKG_COMMIT: 877e3dc2323a4d4c3c75e7168c22a0c4e921d4db
   VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
   CTEST_OUTPUT_ON_FAILURE: 1
 
