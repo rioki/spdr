@@ -106,4 +106,13 @@ namespace spdr
         unpack(is, std::get<I>(t));
         unpack<I + 1, Tp...>(is, t);
     }
+
+    template <typename T>
+    T unpack(std::istream& is)
+    {
+        auto value = T{};
+        unpack(is, value);
+        return value;
+    }
+
 }

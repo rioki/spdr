@@ -20,3 +20,12 @@
 // SOFTWARE.
 
 #pragma once
+
+#include <functional>
+#include <ctime>
+#include <list>
+#include <map>
+#include <thread>
+#include <mutex>
+
+#include <c9y/sync.h>
