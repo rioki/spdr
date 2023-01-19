@@ -21,12 +21,10 @@
 
 #pragma once
 
-#include <spdr/spdr.h>
-#include <c9y/c9y.h>
-
-#include <format>
 #include <sstream>
-#include <thread>
-#include <chrono>
+#include <string>
+
+#include <spdr/spdr.h>
+#include <c9y/async.h>
 
 #include <gtest/gtest.h>

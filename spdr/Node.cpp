@@ -28,8 +28,6 @@
 #include <utility>
 #include <climits>
 
-#include <c9y/sync.h>
-
 #undef max
 
 namespace spdr

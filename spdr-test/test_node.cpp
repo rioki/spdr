@@ -34,6 +34,8 @@
     #define TRACE(...)
 #endif
 
+using namespace std::chrono_literals;
+
 TEST(Node, echo_self_sync)
 {
     bool done = false;
@@ -80,9 +82,13 @@ TEST(Node, echo_self_sync)
     auto request = std::string{"Hello SPDR!"};
     client.send<EchoRequest>(sever_id, request);
 
+    auto start = std::chrono::steady_clock::now();
     while (!done)
     {
         c9y::sync_point();
+
+        auto now = std::chrono::steady_clock::now();
+        ASSERT_GE(2s, now - start);
     }
 
     EXPECT_EQ(request, response);
@@ -115,6 +121,7 @@ TEST(Node, echo_managed)
     server.listen(ECHO_PORT);
 
     auto response = std::string{};
+    auto done = std::atomic<bool>{false};
 
     auto client = spdr::Node{ECHO_PROTOCOLL_ID, std::this_thread::get_id()};
     client.on_connect([] (auto peer) {
@@ -126,6 +133,7 @@ TEST(Node, echo_managed)
     client.on_message<EchoResponse>([&] (auto peer, auto text) {
         TRACE("Client: Recived {} from {}.\n", text, peer);
         response = text;
+        done = true;
         client.stop();
     });
 
@@ -133,7 +141,24 @@ TEST(Node, echo_managed)
     auto request = std::string{"Hello SPDR!"};
     client.send<EchoRequest>(sever_id, request);
 
+    // watchdog
+    auto start = std::chrono::steady_clock::now();
+    auto stopped = c9y::async<bool>([start, &client, &done] () {
+        while (!done)
+        {
+            auto now = std::chrono::steady_clock::now();
+            if (2s > now - start)
+            {
+                client.stop();
+                return false;
+            }
+            std::this_thread::yield();
+        }
+        return true;
+    });
+
     client.run();
 
+    EXPECT_EQ(true, stopped.get());
     EXPECT_EQ(request, response);
 }

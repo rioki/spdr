@@ -27,8 +27,7 @@
 #include <list>
 #include <map>
 #include <thread>
-#include <mutex>
-#include <c9y/c9y.h>
+#include <c9y/sync.h>
 
 #include "pack.h"
 #include "IpAddress.h"
