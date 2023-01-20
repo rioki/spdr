@@ -31,9 +31,6 @@ jobs:
           - triplet: x64-linux
             system: ubuntu-latest
             mono: 'mono'
-          - triplet: x64-macos
-            system: macos-latest
-            mono: 'mono'
     runs-on: ${{ matrix.system }}
     env:
       VCPKG_DEFAULT_TRIPLET: ${{ matrix.triplet }}
