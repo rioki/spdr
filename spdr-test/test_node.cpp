@@ -25,6 +25,7 @@
 //#define IN_DEBUGGER
 
 #ifdef DEBUG_TESTS
+    #include <format>
     #ifdef IN_DEBUGGER
         #define TRACE(...) OutputDebugStringA(std::format(__VA_ARGS__).data())
     #else
@@ -94,6 +95,8 @@ TEST(Node, echo_self_sync)
     EXPECT_EQ(request, response);
 }
 
+using fsec = std::chrono::duration<float>;
+
 TEST(Node, echo_managed)
 {
     constexpr auto ECHO_PORT         = 2001;
@@ -144,21 +147,26 @@ TEST(Node, echo_managed)
     // watchdog
     auto start = std::chrono::steady_clock::now();
     auto stopped = c9y::async<bool>([start, &client, &done] () {
+        TRACE("Starting watchdog\n");
         while (!done)
         {
             auto now = std::chrono::steady_clock::now();
-            if (2s > now - start)
+            auto dt = now - start;
+            TRACE("dt: {}\n", fsec(dt).count());
+            if (2s < now - start)
             {
                 client.stop();
-                return false;
+                TRACE("Watchdog stopped client.\n");
+                return true;
             }
             std::this_thread::yield();
         }
-        return true;
+        TRACE("Watchdog ended normally.\n");
+        return false;
     });
 
     client.run();
 
-    EXPECT_EQ(true, stopped.get());
+    EXPECT_EQ(false, stopped.get());
     EXPECT_EQ(request, response);
 }
