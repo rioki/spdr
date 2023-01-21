@@ -31,6 +31,8 @@ namespace spdr
     class SPDR_EXPORT UdpSocket
     {
     public:
+        static constexpr int RECV_SIZE = 512u;
+
         UdpSocket();
 
         ~UdpSocket();
@@ -39,17 +41,17 @@ namespace spdr
 
         void send(const IpAddress& addr, const std::string& data);
 
-        std::tuple<IpAddress, std::string> recive();
+        std::tuple<IpAddress, std::string> recive() noexcept;
 
     private:
         static bool init;
         #ifdef WINDOWS
-        SOCKET handle;
+        SOCKET handle = 0;
         #else
-        int handle;
+        int handle = 0;
         #endif
 
-        UdpSocket(const UdpSocket&);
-        const UdpSocket& operator = (const UdpSocket&);
+        UdpSocket(const UdpSocket&) = delete;
+        const UdpSocket& operator = (const UdpSocket&) = delete;
     };
 }

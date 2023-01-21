@@ -28,12 +28,13 @@
 
 namespace spdr
 {
-    IpAddress::IpAddress()
+    IpAddress::IpAddress() noexcept
     {
         std::memset(&addr, 0, sizeof(sockaddr_in));
     }
 
     IpAddress::IpAddress(const std::string& host, unsigned short port)
+    : IpAddress()
     {
         addr.sin_family = AF_INET;
         if (host.empty())
@@ -45,7 +46,7 @@ namespace spdr
             addr.sin_addr.s_addr = inet_addr(host.c_str());
             if (addr.sin_addr.s_addr == INADDR_NONE)
             {
-                struct hostent* hp = gethostbyname(host.c_str());
+                auto hp = gethostbyname(host.c_str());
                 if (hp)
                 {
                     memcpy(&addr.sin_addr.s_addr, hp->h_addr, hp->h_length);
@@ -59,14 +60,12 @@ namespace spdr
         addr.sin_port = htons(port);
     }
 
-    IpAddress::IpAddress(const IpAddress& other)
+    IpAddress::IpAddress(const IpAddress& other) noexcept
     {
         std::memcpy(&addr, &other.addr, sizeof(sockaddr_in));
     }
 
-    IpAddress::~IpAddress() {}
-
-    const IpAddress& IpAddress::operator = (const IpAddress& other)
+    const IpAddress& IpAddress::operator = (const IpAddress& other) noexcept
     {
         if (this != &other)
         {
@@ -75,38 +74,33 @@ namespace spdr
         return *this;
     }
 
-    bool IpAddress::operator == (const IpAddress& other) const
+    bool IpAddress::operator == (const IpAddress& other) const noexcept
     {
         return get_host() == other.get_host() &&
                get_port() == other.get_port();
     }
 
-    bool IpAddress::operator != (const IpAddress& other) const
-    {
-        return !(*this == other);
-    }
-
-    unsigned int IpAddress::get_host() const
+    unsigned int IpAddress::get_host() const noexcept
     {
         return ntohl(addr.sin_addr.s_addr);
     }
 
-    unsigned short IpAddress::get_port() const
+    unsigned short IpAddress::get_port() const noexcept
     {
         return ntohs(addr.sin_port);
     }
 
-    IpAddress::operator sockaddr* ()
+    sockaddr* IpAddress::c_obj() noexcept
     {
         return reinterpret_cast<sockaddr*>(&addr);
     }
 
-    IpAddress::operator const sockaddr* () const
+    const sockaddr* IpAddress::c_obj() const noexcept
     {
         return reinterpret_cast<const sockaddr*>(&addr);
     }
 
-    std::ostream& operator << (std::ostream& os, const IpAddress& addr)
+    std::ostream& operator << (std::ostream& os, const IpAddress& addr) noexcept
     {
         unsigned int host = addr.get_host();
         unsigned short port = addr.get_port();

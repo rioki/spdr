@@ -26,7 +26,7 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
-typedef int socklen_t;
+using socklen_t = int;
 #else
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -37,18 +37,15 @@ typedef int socklen_t;
 
 namespace spdr
 {
-    #define RECV_SIZE 512
-
     bool UdpSocket::init = false;
 
     UdpSocket::UdpSocket()
-    : handle(0)
     {
         if (init == false)
         {
             #ifdef _WIN32
-            WSADATA WsaData;
-            int r = WSAStartup(MAKEWORD(2,2), &WsaData);
+            auto wsaData = WSADATA{};
+            auto r = WSAStartup(MAKEWORD(2,2), &wsaData);
             if (r != NO_ERROR)
             {
                 throw std::runtime_error("Failed to start WSA.");
@@ -64,13 +61,13 @@ namespace spdr
         }
 
         #ifdef _WIN32
-        DWORD nonBlocking = 1;
-        if (ioctlsocket(handle, FIONBIO, &nonBlocking) != 0)
+        auto nonBlocking = DWORD{1};
+        if (ioctlsocket(handle, FIONBIO, &nonBlocking) != NO_ERROR)
         {
             throw std::runtime_error("Failed to set socket into non blocking mode.");
         }
         #else
-        int nonBlocking = 1;
+        auto nonBlocking = 1;
         if (fcntl(handle, F_SETFL, O_NONBLOCK, nonBlocking) == -1)
         {
             throw std::runtime_error("Failed to set socket into non blocking mode.");
@@ -102,43 +99,29 @@ namespace spdr
 
     void UdpSocket::send(const IpAddress& addr, const std::string& data)
     {
-        if (data.empty())
-        {
-            throw std::invalid_argument("Trying to send a zero sized packet.");
-        }
-        if (data.size() > RECV_SIZE)
-        {
-            throw std::invalid_argument("Data exedes safe packet size.");
-        }
+        assert(!data.empty());
+        assert(data.size() <= RECV_SIZE);
 
-        int r = sendto(handle, &data[0], static_cast<int>(data.size()), 0, addr, sizeof(sockaddr_in));
-
-        if ((size_t)r != data.size())
+        int r = sendto(handle, &data[0], static_cast<int>(data.size()), 0, addr.c_obj(), sizeof(sockaddr_in));
+        if (static_cast<size_t>(r) != data.size())
         {
             throw std::runtime_error("Failed to send packet.");
         }
     }
 
-    std::tuple<IpAddress, std::string> UdpSocket::recive()
+    std::tuple<IpAddress, std::string> UdpSocket::recive() noexcept
     {
-        IpAddress addr;
-        socklen_t addr_size = sizeof(sockaddr_in);
-        char buffer[RECV_SIZE];
-        int r = recvfrom(handle, buffer, RECV_SIZE, 0, addr, &addr_size);
-
-        /*if (r < 0) // error
-        {
-            throw std::runtime_error("Failed to receive packet.");
-        }*/
-
-        //if (r == 0) // no data
+        auto addr      = IpAddress{};
+        auto addr_size = static_cast<socklen_t>(sizeof(sockaddr_in));
+        auto buffer    = std::array<char, RECV_SIZE>{};
+        auto r = recvfrom(handle, buffer.data(), buffer.size(), 0, addr.c_obj(), &addr_size);
         if (r <= 0)
         {
-            return std::make_tuple(addr, std::string());
+            return {addr, {}};
         }
         else
         {
-            return std::make_tuple(addr, std::string(buffer, r));
+            return {addr, std::string(buffer.data(), r)};
         }
     }
 }
