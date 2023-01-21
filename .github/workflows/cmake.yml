@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        triplet: [x86-windows, x64-windows, x64-linux, x64-macos]
+        triplet: [x86-windows, x64-windows, x64-linux]
         include:
           - triplet: x86-windows
             system: windows-latest
