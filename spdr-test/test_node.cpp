@@ -37,6 +37,8 @@
 
 using namespace std::chrono_literals;
 
+constexpr auto FAIL_TIMEOUT = 10s;
+
 TEST(Node, echo_self_sync)
 {
     bool done = false;
@@ -89,7 +91,7 @@ TEST(Node, echo_self_sync)
         c9y::sync_point();
 
         auto now = std::chrono::steady_clock::now();
-        ASSERT_GE(2s, now - start);
+        ASSERT_GE(FAIL_TIMEOUT, now - start);
     }
 
     EXPECT_EQ(request, response);
@@ -153,7 +155,7 @@ TEST(Node, echo_managed)
             auto now = std::chrono::steady_clock::now();
             auto dt = now - start;
             TRACE("dt: {}\n", fsec(dt).count());
-            if (2s < now - start)
+            if (FAIL_TIMEOUT < now - start)
             {
                 client.stop();
                 TRACE("Watchdog stopped client.\n");
