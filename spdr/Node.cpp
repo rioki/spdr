@@ -30,11 +30,14 @@
 
 #undef max
 
+using namespace std::chrono_literals;
+
 namespace spdr
 {
-    constexpr auto KEEP_ALIVE_THRESHOLD = CLOCKS_PER_SEC / 4;
-    constexpr auto TIMEOUT_THRESHOLD    = 2 * CLOCKS_PER_SEC;
-    constexpr auto RESEND_THRESHOLD     = 2 * CLOCKS_PER_SEC;
+    // These values probably need to made depndent on rount trip time.
+    constexpr auto KEEP_ALIVE_THRESHOLD = 250ms;
+    constexpr auto TIMEOUT_THRESHOLD    = 5s;
+    constexpr auto RESEND_THRESHOLD     = 250ms;
     constexpr auto ACK_COUNT            = sizeof(unsigned int) * 8;
 
     enum SystemMessageId : MessageId
@@ -84,12 +87,12 @@ namespace spdr
         return pid;
     }
 
-    void Node::on_connect(std::function<void (unsigned int)> cb)
+    void Node::on_connect(const std::function<void (PeerId)>& cb)
     {
         connect_cb = cb;
     }
 
-    void Node::on_disconnect(std::function<void (unsigned int)> cb)
+    void Node::on_disconnect(const std::function<void (PeerId)>& cb)
     {
         disconnect_cb = cb;
     }
@@ -155,11 +158,11 @@ namespace spdr
         std::string payload = buff.str();
         socket.send(i->second.address, payload);
 
-        i->second.last_message_sent = std::clock();
+        i->second.last_message_sent = std::chrono::steady_clock::now();
 
         if (message->get_id() != SystemMessageId::KEEP_ALIVE)
         {
-            Message m = {i->first, std::clock(), seqnum, payload};
+            Message m = {i->first, std::chrono::steady_clock::now(), seqnum, payload};
             sent_messages.push_back(m);
         }
     }
@@ -168,9 +171,9 @@ namespace spdr
     {
         assert(std::this_thread::get_id() == worker.get_id());
 
-        for (auto i = peers.begin(); i != peers.end(); i++)
+        for (const auto& [id, peer] : peers)
         {
-            do_send(i->first, message);
+            do_send(id, message);
         }
     }
 
@@ -247,7 +250,7 @@ namespace spdr
             }
         }
 
-        i->second.last_message_recived = std::clock();
+        i->second.last_message_recived = std::chrono::steady_clock::now();
 
         return false;
     }
@@ -291,7 +294,7 @@ namespace spdr
     {
         assert(std::this_thread::get_id() == worker.get_id());
 
-        auto now = std::clock();
+        auto now = std::chrono::steady_clock::now();
         std::ranges::for_each(peers, [this, now] (const auto& val) {
             if ((now - val.second.last_message_sent) > KEEP_ALIVE_THRESHOLD)
             {
@@ -304,9 +307,7 @@ namespace spdr
     {
         assert(std::this_thread::get_id() == worker.get_id());
 
-        auto now = std::clock();
-
-        auto i = peers.begin();
+        auto now = std::chrono::steady_clock::now();
         std::erase_if(peers, [this, now] (const auto& val) {
             if ((now - val.second.last_message_recived) > TIMEOUT_THRESHOLD) {
                 if (disconnect_cb)
@@ -323,7 +324,7 @@ namespace spdr
     {
         assert(std::this_thread::get_id() == worker.get_id());
 
-        auto now = std::clock();
+        auto now = std::chrono::steady_clock::now();
         std::erase_if(sent_messages, [this, now] (auto& message) {
             auto to_delete = false;
 

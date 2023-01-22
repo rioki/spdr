@@ -27,5 +27,6 @@
 #include <map>
 #include <thread>
 #include <mutex>
+#include <array>
 
 #include <c9y/sync.h>

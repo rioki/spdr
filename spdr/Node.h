@@ -27,6 +27,7 @@
 #include <list>
 #include <map>
 #include <thread>
+#include <chrono>
 #include <c9y/sync.h>
 
 #include "pack.h"
@@ -106,14 +107,14 @@ namespace spdr
         PeerId connect(const IpAddress& address);
 
         //! Handle a connection.
-        void on_connect(std::function<void (PeerId)> cb);
+        void on_connect(const std::function<void (PeerId)>& cb);
 
         //! Handle a disconnetion.
-        void on_disconnect(std::function<void (PeerId)> cb);
+        void on_disconnect(const std::function<void (PeerId)>& cb);
 
         //! Handle a recived message.
         template <typename MESSAGE>
-        void on_message(typename MESSAGE::HandleFunc cb);
+        void on_message(const typename MESSAGE::HandleFunc& cb);
 
         //! Send a message to a peer.
         template <typename MESSAGE, typename ... PARAMS>
@@ -130,6 +131,8 @@ namespace spdr
         void stop();
 
     private:
+        using TimePoint = std::chrono::steady_clock::time_point;
+
         unsigned int id;
 
         std::function<void (unsigned int)> connect_cb;
@@ -144,11 +147,11 @@ namespace spdr
         struct Peer
         {
             IpAddress address;
-            clock_t   last_message_sent         = std::clock();
-            clock_t   last_message_recived      = std::clock();
-            unsigned int sequence_number        = 1;
-            unsigned int remote_sequence_number = 0;
-            unsigned int ack_field              = 0;
+            TimePoint last_message_sent         = std::chrono::steady_clock::now();
+            TimePoint last_message_recived      = std::chrono::steady_clock::now();
+            unsigned  int sequence_number        = 1;
+            unsigned  int remote_sequence_number = 0;
+            unsigned  int ack_field              = 0;
         };
         std::atomic<PeerId> next_peer_id = 0;
         std::map<PeerId, Peer> peers;
@@ -156,7 +159,7 @@ namespace spdr
         struct Message
         {
             PeerId       peer;
-            clock_t      time;
+            TimePoint    time;
             unsigned int sequence_number;
             std::string  payload;
         };
@@ -176,7 +179,7 @@ namespace spdr
     };
 
     template <typename MESSAGE>
-    void Node::on_message(typename MESSAGE::HandleFunc cb)
+    void Node::on_message(const typename MESSAGE::HandleFunc& cb)
     {
         handlers[MESSAGE::id] = [this, cb] (PeerId peer, std::istream& is)
         {

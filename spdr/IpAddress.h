@@ -37,34 +37,47 @@
 
 namespace spdr
 {
+    //! IP Address
     class SPDR_EXPORT IpAddress
     {
     public:
-        IpAddress();
+        //! Create null IP address (0.0.0.0:0)
+        IpAddress() noexcept;
 
+        //! Create IP addres from stirng address or host name and port.
+        //!
+        //! @param host either string representation of address or host name
+        //! @param port port to connect to
         IpAddress(const std::string& host, unsigned short port);
 
-        IpAddress(const IpAddress& other);
+        //! Copy consturctor
+        IpAddress(const IpAddress& other) noexcept;
 
-        ~IpAddress();
+        ~IpAddress() = default;
 
-        const IpAddress& operator = (const IpAddress& other);
+        //! Assignment operator
+        const IpAddress& operator = (const IpAddress& other) noexcept;
 
-        bool operator == (const IpAddress& other) const;
+        //! Equal comparision operator
+        bool operator == (const IpAddress& other) const noexcept;
 
-        bool operator != (const IpAddress& other) const;
+        //! Get the host address.
+        unsigned int get_host() const noexcept;
 
-        unsigned int get_host() const;
+        //! Get the port.
+        unsigned short get_port() const noexcept;
 
-        unsigned short get_port() const;
-
-        operator sockaddr* ();
-
-        operator const sockaddr* () const;
+        //! Get undelying C object
+        //!
+        //! @{
+        sockaddr* c_obj() noexcept;
+        const sockaddr* c_obj() const noexcept;
+        //! @}
 
     private:
         sockaddr_in addr;
     };
 
-    SPDR_EXPORT std::ostream& operator << (std::ostream& os, const IpAddress& addr);
+    //! Write IP address to stream.
+    SPDR_EXPORT std::ostream& operator << (std::ostream& os, const IpAddress& addr) noexcept;
 }
