@@ -25,7 +25,7 @@ constexpr auto CHAT_PROTOCOL_ID = 0xC5A7;
 
 Every network protocol should have a unique id. This id helps to ensure when
 a connection is established that each network node (client or sever) are 
-actually talking the same "language". If you change the anything to your
+actually talking the same "language". If you change anything to your
 protocol, you should also change this magic id. 
 
 The next thing is we need to define some messages:
@@ -40,14 +40,14 @@ enum class ChatMessageId : spdr::MessageId
 
 using JoinMessage   = spdr::Message<ChatMessageId::JOIN, std::string>;
 using ServerMessage = spdr::Message<ChatMessageId::SERVER, std::string, std::string>;
-using ChatMessage = spdr::Message<ChatMessageId::CHAT, std::string>;
+using ChatMessage   = spdr::Message<ChatMessageId::CHAT, std::string>;
 ```
 
 We first define an enum that contains all message ids. These are unique ids
 per message type and are of type `MessageId`. 
 
-Futher we define the actuall messages types. This done by alisaing a `Message`
-with the message id and all payload data types unsing the `using` clause.
+Further we define the actual messages types. This is done by aliasing a `Message`
+with the message id and all payload data types using the `using` clause.
 
 To implement the chat server we need to create a network `Node` with the given 
 protocol id.
@@ -57,7 +57,7 @@ auto server = spdr::Node{CHAT_PROTOCOL_ID};
 ```
 
 Since we need to keep track of the connected users, we will create a small 
-structure that mapps the peer id (id of the other node) to a user name:
+structure that maps the peer id (id of the other node) to a user name:
 
 ```cpp
 auto users = std::map<spdr::PeerID, std::string>{};
@@ -76,7 +76,7 @@ server.on_message<JoinMessage>([&] (auto peer, auto name)
 With some error handling omitted, we save the username with the peer and
 tell all other clients that a new user joined the chat. 
 
-Once a client is joined, we expect to recive chat messages. 
+Once a client is joined, we expect to receive chat messages. 
 
 ```cpp
 server.on_message<ChatMessage>([&] (auto peer, auto text)
@@ -93,7 +93,7 @@ the message).
 Of course we need to make sure we register clients that disconnect:
 
 ```cpp
-server.on_disconnect([&] (unsigned int peer)
+server.on_disconnect([&] (auto peer)
 {
     auto i = users.find(peer);
     if (i != users.end())
@@ -116,10 +116,10 @@ This will let the server to listen on port 2001 and start processing messages.
 If you want ever stop the server you will need to call:
 
 ```cpp
-server.stop
+server.stop();
 ```
 
-The client is implemented in a similar fassion: 
+The client is implemented in a similar fashion: 
 
 ```cpp
 auto client = spdr::Node{CHAT_PROTOCOL_ID};
@@ -128,7 +128,7 @@ auto client = spdr::Node{CHAT_PROTOCOL_ID};
 The client only needs to handle server messages:
 
 ```cpp
-node.on_message<ServerMessage>([this] (auto peer, auto user, auto text)
+client.on_message<ServerMessage>([this] (auto peer, auto user, auto text)
 {
     if (user != username)
     {
@@ -143,17 +143,17 @@ stop processing input:
 
 ```cpp
 auto running = std::atomic<bool>(true);
-node.on_disconnect([this] (auto)
+client.on_disconnect([this] (auto)
 {
     running = false;
 });
 ```
 
 The boolean is atomic, because we are using the feature that the node
-will process messages on a seperate thread. You probably should 
-read about threadding below, so you don't break your fancy applications.
+will process messages on a separate thread. You probably should 
+read about threading below, so you don't break your fancy applications.
 
-In the chat example we get the server's IP address and user name from the
+In the chat example we get the server's IP address and a user name from the
 command line arguments.
 
 ```cpp
@@ -165,8 +165,8 @@ Now that we have all the bits together, we need to connect the client to
 the server and send a join message:
 
 ```cpp
-auto id = node.connect({address, CHAT_PORT});
-node.send<JoinMessage>(id, username);
+auto srv = node.connect({address, 2001});
+client.send<JoinMessage>(srv, username);
 ```
 
 Finally we will read input as it is typed and send it to the server:
@@ -179,23 +179,26 @@ while (running)
 
     if (!line.empty())
     {
-        node.send<ChatMessage>(server, line);
+        client.send<ChatMessage>(srv, line);
     }
 }
 ```
+
+You may want to look into the chat example, as it implements all the above
+with some useful logging and error handling.
 
 ## Threading
 
 Each `Node` has it's own thread to process network messages. By default this 
 thread is used to also process message handlers. There is the option
 to move the message handlers onto a different thread and reduce potential 
-synchonisation overhead. 
+synchronization overhead. 
 
 ### Using Your Own Thread
 
 spdr uses [c9y](https://github.com/rioki/c9y)'s sync infrastructure to
-safly deletage work between threads. If you want to move processing into a 
-differen thread, such as for example the thread processing business logic,
+safely delegate work between threads. If you want to move processing into a 
+different thread, such as for example the thread processing business logic,
 you need to specify this thread id on construction of the `Node` and 
 periodically call `c9y::sync_point()`. 
 
@@ -214,7 +217,7 @@ while (running)
 }
 ```
 
-This allows you to not have any additional thread synchonisaton in your 
+This allows you to not have any additional thread synchronization in your 
 code, since the message handlers will run in your main thread.
 
 ### Run
